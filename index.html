@@ -253,53 +253,54 @@
     </div>
 
     <!-- GAME OVER SCREEN (RESULT) -->
-    <div id="gameover-screen" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-lg p-6 overflow-y-auto scrollable-card">
-        <div class="max-w-md md:max-w-lg lg:max-w-xl w-full bg-slate-900 border border-red-500/30 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
-            <div class="text-6xl mb-3">💥</div>
-            <h2 class="text-4xl md:text-5xl font-black text-red-500 tracking-wider mb-2 text-shadow-arcade">CRASHED!</h2>
-            <p class="text-slate-400 text-xs md:text-sm mb-5">障害物や電車に激突してしまった！</p>
+    <div id="gameover-screen" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-lg p-3 md:p-6 overflow-y-auto cursor-default">
+        <div class="max-w-md md:max-w-lg lg:max-w-xl w-full bg-slate-900 border border-red-500/30 rounded-3xl p-4 md:p-6 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto max-h-[90vh] overflow-y-auto scrollable-card">
+            <div class="text-4xl md:text-5xl mb-1">💥</div>
+            <h2 class="text-3xl md:text-5xl font-black text-red-500 tracking-wider mb-1 text-shadow-arcade">CRASHED!</h2>
+            <p class="text-slate-400 text-xs md:text-sm mb-3">障害物や電車に激突してしまった！</p>
 
-            <div class="w-full space-y-3.5 mb-5">
-                <div class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 flex justify-between items-center px-6">
-                    <span class="text-xs md:text-sm font-bold text-slate-400">FINAL SCORE</span>
-                    <span id="go-score" class="text-3xl md:text-4xl font-black text-white">0</span>
+            <!-- スコア・コインを横並び(2列)に配置して縦幅を短縮 -->
+            <div class="w-full grid grid-cols-2 gap-2.5 mb-3">
+                <div class="bg-slate-800/90 rounded-2xl p-2.5 md:p-3 border border-slate-700 flex flex-col items-center justify-center">
+                    <span class="text-[10px] md:text-xs font-bold text-slate-400">FINAL SCORE</span>
+                    <span id="go-score" class="text-xl md:text-3xl font-black text-white">0</span>
                 </div>
 
-                <div class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 flex justify-between items-center px-6">
-                    <span class="text-xs md:text-sm font-bold text-slate-400">COINS COLLECTED</span>
-                    <span id="go-coins" class="text-2xl md:text-3xl font-black text-amber-400">0</span>
-                </div>
-
-                <div id="new-highscore-badge" class="hidden bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black py-2 rounded-xl text-xs md:text-sm tracking-widest shadow-md">
-                    🎉 NEW HIGH SCORE! 🎉
+                <div class="bg-slate-800/90 rounded-2xl p-2.5 md:p-3 border border-slate-700 flex flex-col items-center justify-center">
+                    <span class="text-[10px] md:text-xs font-bold text-slate-400">COINS COLLECTED</span>
+                    <span id="go-coins" class="text-lg md:text-2xl font-black text-amber-400">0</span>
                 </div>
             </div>
 
+            <div id="new-highscore-badge" class="hidden w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black py-1.5 rounded-xl text-xs tracking-widest shadow-md mb-3">
+                🎉 NEW HIGH SCORE! 🎉
+            </div>
+
             <!-- リザルト画面での名前登録 -->
-            <div class="w-full bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-2.5 mb-5">
-                <div class="text-xs md:text-sm font-bold text-slate-400 text-left">名前を登録:</div>
-                <div class="flex gap-2.5">
-                    <input type="text" id="result-name-input" maxlength="10" placeholder="名前を入力（必須）" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm md:text-base focus:outline-none focus:border-amber-400">
-                    <button id="result-save-name-btn" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs md:text-sm rounded-xl transition">ランキング登録</button>
+            <div class="w-full bg-slate-800/80 rounded-2xl p-3 border border-slate-700 flex flex-col gap-2 mb-3">
+                <div class="text-xs font-bold text-slate-400 text-left">名前を登録:</div>
+                <div class="flex gap-2">
+                    <input type="text" id="result-name-input" maxlength="10" placeholder="名前を入力（必須）" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs md:text-sm focus:outline-none focus:border-amber-400">
+                    <button id="result-save-name-btn" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition shrink-0">ランキング登録</button>
                 </div>
             </div>
 
             <!-- リザルト操作ボタン群 -->
-            <div class="flex flex-col gap-3 w-full">
-                <button id="restart-btn" onclick="handleStartGame(event)" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xl md:text-2xl rounded-2xl shadow-lg shadow-emerald-500/30 border-2 border-emerald-200 transition transform hover:scale-105 active:scale-95">
+            <div class="flex flex-col gap-2.5 w-full">
+                <button id="restart-btn" onclick="handleStartGame(event)" class="w-full py-2.5 md:py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg md:text-xl rounded-2xl shadow-lg shadow-emerald-500/30 border-2 border-emerald-200 transition transform hover:scale-102 active:scale-95">
                     もう一度リトライ [ Space / Enter ]
                 </button>
 
-                <div class="grid grid-cols-2 gap-3 w-full">
-                    <button id="result-ranking-btn" class="py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs md:text-base rounded-xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                <div class="grid grid-cols-2 gap-2.5 w-full">
+                    <button id="result-ranking-btn" class="py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1">
                         🏆 ランキング
                     </button>
-                    <button id="result-quit-btn" class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs md:text-base rounded-xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                    <button id="result-quit-btn" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1">
                         🚪 ゲームをやめる
                     </button>
                 </div>
 
-                <button id="title-btn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs md:text-base rounded-xl border border-slate-700 transition">
+                <button id="title-btn" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs md:text-sm rounded-xl border border-slate-700 transition">
                     タイトルへ戻る [ ESC ]
                 </button>
             </div>
