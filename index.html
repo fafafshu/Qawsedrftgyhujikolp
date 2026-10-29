@@ -36,10 +36,10 @@
         }
         /* iPad Safe Area 判別・余白対応 */
         .safe-area-padding {
-            padding-top: env(safe-area-inset-top, 16px);
-            padding-bottom: env(safe-area-inset-bottom, 16px);
-            padding-left: env(safe-area-inset-left, 16px);
-            padding-right: env(safe-area-inset-right, 16px);
+            padding-top: env(safe-area-inset-top, 20px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            padding-left: env(safe-area-inset-left, 20px);
+            padding-right: env(safe-area-inset-right, 20px);
         }
         .text-shadow-arcade {
             text-shadow: 3px 3px 0px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
@@ -65,14 +65,14 @@
         ::-webkit-scrollbar { display: none; }
 
         /* ランキング用スタイル */
-        .rank-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #334155; gap: 6px; }
+        .rank-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #334155; gap: 8px; }
         .rank-item:last-child { border-bottom: none; }
-        .rank-num { font-weight: bold; width: 28px; font-size: 1.1rem; text-align: center; }
+        .rank-num { font-weight: bold; width: 32px; font-size: 1.2rem; text-align: center; }
         .rank-1 { color: #f1c40f; }
         .rank-2 { color: #cbd5e1; }
         .rank-3 { color: #cd7f32; }
-        .rank-name { flex-grow: 1; text-align: left; padding-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; }
-        .rank-val { font-weight: bold; color: #facc15; font-size: 1.1rem; white-space: nowrap; }
+        .rank-name { flex-grow: 1; text-align: left; padding-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; font-size: 1.05rem; }
+        .rank-val { font-weight: bold; color: #facc15; font-size: 1.2rem; white-space: nowrap; }
     </style>
 </head>
 <body class="relative w-screen h-screen overflow-hidden select-none bg-slate-900 text-white">
@@ -81,34 +81,34 @@
     <div id="game-container" class="absolute inset-0 z-0"></div>
 
     <!-- UI OVERLAY -->
-    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6 safe-area-padding">
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-8 safe-area-padding">
         
         <!-- TOP HUD -->
         <div id="top-hud" class="flex justify-between items-start w-full opacity-0 transition-opacity duration-300">
             <!-- Left Stats -->
-            <div class="flex flex-col gap-2">
-                <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-700/60 shadow-lg flex items-center gap-3">
-                    <span class="text-xs font-bold text-amber-400 tracking-wider">SCORE</span>
-                    <span id="score-text" class="text-2xl md:text-3xl font-black text-white tracking-wider">0</span>
+            <div class="flex flex-col gap-3">
+                <div class="bg-slate-900/85 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-slate-700/60 shadow-lg flex items-center gap-4">
+                    <span class="text-xs md:text-sm font-bold text-amber-400 tracking-wider">SCORE</span>
+                    <span id="score-text" class="text-2xl md:text-4xl font-black text-white tracking-wider">0</span>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <div id="multiplier-badge" class="bg-amber-500 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-xs shadow-md flex items-center gap-1 transition-colors duration-300">
+                <div class="flex items-center gap-2.5">
+                    <div id="multiplier-badge" class="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-full text-xs md:text-sm shadow-md flex items-center gap-1 transition-colors duration-300">
                         <span>MULTIPLIER</span>
-                        <span id="multiplier-text" class="text-sm">x1</span>
+                        <span id="multiplier-text" class="text-sm md:text-base">x1</span>
                     </div>
-                    <div class="bg-slate-800/80 px-3 py-0.5 rounded-full text-xs font-semibold text-slate-300 border border-slate-700">
+                    <div class="bg-slate-800/85 px-3.5 py-1 rounded-full text-xs md:text-sm font-semibold text-slate-300 border border-slate-700">
                         HI: <span id="hud-highscore-text">0</span>
                     </div>
                 </div>
 
                 <!-- BONUS GAUGE BAR -->
-                <div id="bonus-gauge-container" class="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-purple-500/40 shadow-lg flex flex-col gap-1 w-40 md:w-48 transition-all duration-300">
-                    <div class="flex justify-between items-center text-[10px] font-black tracking-wider">
+                <div id="bonus-gauge-container" class="bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-purple-500/40 shadow-lg flex flex-col gap-1.5 w-48 md:w-60 transition-all duration-300">
+                    <div class="flex justify-between items-center text-xs font-black tracking-wider">
                         <span id="bonus-label" class="text-purple-300 flex items-center gap-1">⚡ BONUS GAUGE</span>
                         <span id="bonus-pct-text" class="text-purple-400">0%</span>
                     </div>
-                    <div class="w-full bg-slate-950/80 h-2.5 rounded-full overflow-hidden p-0.5 border border-purple-900/50">
+                    <div class="w-full bg-slate-950/80 h-3 rounded-full overflow-hidden p-0.5 border border-purple-900/50">
                         <div id="bonus-fill-bar" class="bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
                     </div>
                 </div>
@@ -116,96 +116,96 @@
 
             <!-- Right Stats -->
             <div class="flex flex-col items-end gap-2">
-                <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-700/60 shadow-lg flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-full bg-amber-400 border-2 border-yellow-200 flex items-center justify-center text-slate-900 font-black text-xs shadow-inner">
+                <div class="bg-slate-900/85 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-slate-700/60 shadow-lg flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-full bg-amber-400 border-2 border-yellow-200 flex items-center justify-center text-slate-900 font-black text-sm shadow-inner">
                         $
                     </div>
-                    <span id="coins-text" class="text-xl md:text-2xl font-black text-amber-300">0</span>
+                    <span id="coins-text" class="text-2xl md:text-3xl font-black text-amber-300">0</span>
                 </div>
             </div>
         </div>
 
         <!-- POWER-UP ACTIVE BARS -->
-        <div id="powerup-hud" class="absolute top-36 right-4 flex flex-col gap-2 w-40 pointer-events-none"></div>
+        <div id="powerup-hud" class="absolute top-44 right-6 flex flex-col gap-2.5 w-48 md:w-56 pointer-events-none"></div>
 
         <!-- TOUCH / ON-SCREEN CONTROLS（非表示化） -->
         <div id="mobile-controls" class="hidden"></div>
     </div>
 
     <!-- START / MENU SCREEN -->
-    <div id="start-screen" onclick="handleStartGame(event)" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-transparent p-4 md:p-6 overflow-y-auto cursor-pointer">
-        <div class="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-3xl p-5 md:p-7 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto max-h-[90vh] overflow-y-auto cursor-default">
-            <div class="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl"></div>
+    <div id="start-screen" onclick="handleStartGame(event)" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-transparent p-4 md:p-8 overflow-y-auto cursor-pointer">
+        <div class="max-w-md md:max-w-xl lg:max-w-2xl w-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto max-h-[92vh] overflow-y-auto cursor-default">
+            <div class="absolute -top-24 -left-24 w-56 h-56 bg-amber-500/20 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -right-24 w-56 h-56 bg-cyan-500/20 rounded-full blur-3xl"></div>
 
-            <div class="inline-block bg-amber-500/10 border border-amber-500/30 px-4 py-1 rounded-full text-amber-400 text-xs font-bold tracking-widest mb-2">
+            <div class="inline-block bg-amber-500/10 border border-amber-500/30 px-4 py-1.5 rounded-full text-amber-400 text-xs md:text-sm font-bold tracking-widest mb-3">
                 3D ENDLESS RUNNER (文化祭特別版)
             </div>
 
-            <h1 class="text-3xl md:text-5xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300 text-shadow-arcade mb-1">
+            <h1 class="text-4xl md:text-6xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300 text-shadow-arcade mb-2">
                 SUBWAY RUNNER
             </h1>
-            <p class="text-slate-300 text-xs md:text-sm mb-4">迫りくる電車や障害物をかわし、ハイスコアを目指せ！</p>
+            <p class="text-slate-300 text-xs md:text-base mb-5">迫りくる電車や障害物をかわし、ハイスコアを目指せ！</p>
 
-            <div class="w-full bg-slate-800/80 rounded-2xl p-2.5 border border-slate-700 mb-3 flex justify-between items-center">
-                <span class="text-xs font-bold text-slate-400">HIGH SCORE</span>
-                <span id="menu-highscore" class="text-2xl font-black text-amber-400">0</span>
+            <div class="w-full bg-slate-800/80 rounded-2xl p-3 border border-slate-700 mb-4 flex justify-between items-center px-5">
+                <span class="text-xs md:text-sm font-bold text-slate-400">HIGH SCORE</span>
+                <span id="menu-highscore" class="text-2xl md:text-3xl font-black text-amber-400">0</span>
             </div>
 
-            <button id="start-btn" onclick="handleStartGame(event)" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xl rounded-2xl shadow-lg shadow-amber-500/30 border-2 border-yellow-200 transition transform hover:scale-105 active:scale-95 mb-3">
-                タップ / クリック / [ Space / Enter ] でスタート
+            <button id="start-btn" onclick="handleStartGame(event)" class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xl md:text-2xl rounded-2xl shadow-lg shadow-amber-500/30 border-2 border-yellow-200 transition transform hover:scale-105 active:scale-95 mb-4">
+                タップ / [ Space / Enter ] でスタート
             </button>
 
             <!-- アクションボタン群 -->
-            <div class="grid grid-cols-2 gap-3 w-full mb-3">
-                <button id="ranking-btn" onclick="event.stopPropagation()" class="py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm rounded-2xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+            <div class="grid grid-cols-2 gap-4 w-full mb-4">
+                <button id="ranking-btn" onclick="event.stopPropagation()" class="py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm md:text-base rounded-2xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1.5">
                     🏆 ランキング
                 </button>
-                <button id="quit-btn" onclick="event.stopPropagation()" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-2xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                <button id="quit-btn" onclick="event.stopPropagation()" class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm md:text-base rounded-2xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1.5">
                     🚪 ゲームをやめる
                 </button>
             </div>
 
             <!-- 遊び方・操作方法 -->
-            <div class="w-full bg-slate-950/70 rounded-xl p-3 border border-slate-800 text-left text-xs text-slate-300 space-y-1 mb-2">
-                <div class="font-bold text-amber-400 mb-1 flex items-center gap-1">🎮 遊び方 & 操作方法:</div>
-                <div class="text-[11px] text-slate-400 mb-1.5 leading-relaxed">
+            <div class="w-full bg-slate-950/70 rounded-2xl p-4 border border-slate-800 text-left text-xs md:text-sm text-slate-300 space-y-1.5 mb-3">
+                <div class="font-bold text-amber-400 mb-1 flex items-center gap-1.5 text-sm md:text-base">🎮 遊び方 & 操作方法:</div>
+                <div class="text-xs md:text-sm text-slate-400 mb-2 leading-relaxed">
                     線路の上を走り続け、障害物や電車を避けてコインを集めよう！時間経過やコイン獲得でスコアが増加します。
                 </div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>スタート / リトライ:</span> <span class="font-semibold text-white">画面タップ / Space / Enter</span></div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>レーン移動:</span> <span class="font-semibold text-white">左右スワイプ / ← → キー</span></div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>ジャンプ (障害物・低い柵を跳び越す):</span> <span class="font-semibold text-white">上スワイプ / ↑ キー</span></div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>しゃがむ (高い看板をくぐる):</span> <span class="font-semibold text-white">下スワイプ / ↓ キー</span></div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>電車登り:</span> <span class="font-semibold text-amber-300">スロープ（坂）付き電車から屋根へ走れる！</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-1"><span>スタート / リトライ:</span> <span class="font-semibold text-white">画面タップ / Space / Enter</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-1"><span>レーン移動:</span> <span class="font-semibold text-white">左右スワイプ / ← → キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-1"><span>ジャンプ (障害物・低い柵を跳び越す):</span> <span class="font-semibold text-white">上スワイプ / ↑ キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-1"><span>しゃがむ (高い看板をくぐる):</span> <span class="font-semibold text-white">下スワイプ / ↓ キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-1"><span>電車登り:</span> <span class="font-semibold text-amber-300">スロープ（坂）付き電車から屋根へ走れる！</span></div>
                 <div class="flex justify-between"><span>タイトルへ戻る:</span> <span class="font-semibold text-sky-300">ESC キー</span></div>
             </div>
 
             <!-- アイテムの説明 -->
-            <div class="w-full bg-slate-950/70 rounded-xl p-3 border border-slate-800 text-left text-xs text-slate-300 space-y-1.5 mb-2">
-                <div class="font-bold text-cyan-400 mb-1 flex items-center gap-1">✨ 出現アイテム一覧:</div>
-                <div class="flex items-start gap-2">
-                    <span class="px-1.5 py-0.5 bg-red-500/20 border border-red-500/50 rounded text-red-400 font-bold text-[10px] shrink-0">🧲 マグネット</span>
-                    <span class="text-[11px] text-slate-300">一定時間、周囲のコインを自動的に吸い寄せます。</span>
+            <div class="w-full bg-slate-950/70 rounded-2xl p-4 border border-slate-800 text-left text-xs md:text-sm text-slate-300 space-y-2 mb-3">
+                <div class="font-bold text-cyan-400 mb-1 flex items-center gap-1.5 text-sm md:text-base">✨ 出現アイテム一覧:</div>
+                <div class="flex items-start gap-2.5">
+                    <span class="px-2 py-0.5 bg-red-500/20 border border-red-500/50 rounded-md text-red-400 font-bold text-xs shrink-0">🧲 マグネット</span>
+                    <span class="text-xs md:text-sm text-slate-300">一定時間、周囲のコインを自動的に吸い寄せます。</span>
                 </div>
-                <div class="flex items-start gap-2">
-                    <span class="px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/50 rounded text-amber-400 font-bold text-[10px] shrink-0">⭐ 2X スコア</span>
-                    <span class="text-[11px] text-slate-300">一定時間、獲得できるスコアが2倍にアップします。</span>
+                <div class="flex items-start gap-2.5">
+                    <span class="px-2 py-0.5 bg-amber-500/20 border border-amber-500/50 rounded-md text-amber-400 font-bold text-xs shrink-0">⭐ 2X スコア</span>
+                    <span class="text-xs md:text-sm text-slate-300">一定時間、獲得できるスコアが2倍にアップします。</span>
                 </div>
-                <div class="flex items-start gap-2">
-                    <span class="px-1.5 py-0.5 bg-cyan-500/20 border border-cyan-500/50 rounded text-cyan-400 font-bold text-[10px] shrink-0">🛡️ シールド</span>
-                    <span class="text-[11px] text-slate-300">ホバーボードを装着！1回だけ障害物衝突を防ぎます。</span>
+                <div class="flex items-start gap-2.5">
+                    <span class="px-2 py-0.5 bg-cyan-500/20 border border-cyan-500/50 rounded-md text-cyan-400 font-bold text-xs shrink-0">🛡️ シールド</span>
+                    <span class="text-xs md:text-sm text-slate-300">ホバーボードを装着！1回だけ障害物衝突を防ぎます。</span>
                 </div>
-                <div class="flex items-start gap-2">
-                    <span class="px-1.5 py-0.5 bg-pink-500/20 border border-pink-500/50 rounded text-pink-400 font-bold text-[10px] shrink-0">⚡ ボーナス</span>
-                    <span class="text-[11px] text-slate-300">ゲージが大幅増加！100%で<strong class="text-pink-400">10倍フィーバー</strong>発動！</span>
+                <div class="flex items-start gap-2.5">
+                    <span class="px-2 py-0.5 bg-pink-500/20 border border-pink-500/50 rounded-md text-pink-400 font-bold text-xs shrink-0">⚡ ボーナス</span>
+                    <span class="text-xs md:text-sm text-slate-300">ゲージが大幅増加！100%で<strong class="text-pink-400">10倍フィーバー</strong>発動！</span>
                 </div>
-                <div class="flex items-start gap-2">
-                    <span class="px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/50 rounded text-emerald-400 font-bold text-[10px] shrink-0">💥 クラッシャー</span>
-                    <span class="text-[11px] text-slate-300">一定時間、全身超パワーの肉体派マッチョ化！走るだけでハードルを豪快に蹴散らします！（電車は不可）</span>
+                <div class="flex items-start gap-2.5">
+                    <span class="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/50 rounded-md text-emerald-400 font-bold text-xs shrink-0">💥 クラッシャー</span>
+                    <span class="text-xs md:text-sm text-slate-300">一定時間、全身超パワーのマッチョ化！走るだけでハードルを豪快に蹴散らします！（電車は不可）</span>
                 </div>
             </div>
 
-            <button id="sound-toggle" onclick="event.stopPropagation()" class="mt-1 text-xs font-bold text-slate-400 hover:text-white flex items-center gap-2">
+            <button id="sound-toggle" onclick="event.stopPropagation()" class="mt-2 text-xs md:text-sm font-bold text-slate-400 hover:text-white flex items-center gap-2">
                 <span id="sound-icon">🔊</span> Sound: <span id="sound-status" class="text-emerald-400">ON</span>
             </button>
         </div>
@@ -213,75 +213,75 @@
 
     <!-- 交代案内モーダル -->
     <div id="change-player-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-6">
-        <div class="text-3xl md:text-4xl font-black text-amber-400 text-center tracking-wider text-shadow-arcade animate-pulse">
+        <div class="text-4xl md:text-6xl font-black text-amber-400 text-center tracking-wider text-shadow-arcade animate-pulse">
             つぎの人に<br>交代してね！
         </div>
     </div>
 
     <!-- ランキングモーダル -->
     <div id="ranking-modal" class="hidden absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-lg p-6">
-        <div class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center max-h-[85vh]">
-            <h2 class="text-2xl md:text-3xl font-black text-amber-400 tracking-wider mb-4">🏆 ハイスコアランキング</h2>
+        <div class="max-w-md md:max-w-lg lg:max-w-xl w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center max-h-[88vh]">
+            <h2 class="text-2xl md:text-4xl font-black text-amber-400 tracking-wider mb-5">🏆 ハイスコアランキング</h2>
             
-            <div class="w-full flex gap-2 mb-4">
-                <input type="text" id="player-name-input" maxlength="10" placeholder="名前を入力して登録" class="flex-1 px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400">
-                <button id="save-name-btn" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition">名前を登録 / 変更</button>
+            <div class="w-full flex gap-3 mb-5">
+                <input type="text" id="player-name-input" maxlength="10" placeholder="名前を入力して登録" class="flex-1 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm md:text-base focus:outline-none focus:border-amber-400">
+                <button id="save-name-btn" class="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs md:text-sm rounded-xl transition">名前を登録 / 変更</button>
             </div>
 
-            <div id="ranking-list" class="w-full max-h-60 overflow-y-auto bg-slate-950/60 rounded-xl p-2 border border-slate-800 text-left mb-4"></div>
+            <div id="ranking-list" class="w-full max-h-[50vh] overflow-y-auto bg-slate-950/60 rounded-2xl p-3 border border-slate-800 text-left mb-5"></div>
 
-            <button id="close-ranking-btn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 transition">閉じる</button>
+            <button id="close-ranking-btn" class="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-base rounded-xl border border-slate-700 transition">閉じる</button>
         </div>
     </div>
 
     <!-- GAME OVER SCREEN (RESULT) -->
     <div id="gameover-screen" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-lg p-6 overflow-y-auto">
-        <div class="max-w-md w-full bg-slate-900 border border-red-500/30 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
-            <div class="text-5xl mb-2">💥</div>
-            <h2 class="text-3xl md:text-4xl font-black text-red-500 tracking-wider mb-1 text-shadow-arcade">CRASHED!</h2>
-            <p class="text-slate-400 text-xs mb-4">障害物や電車に激突してしまった！</p>
+        <div class="max-w-md md:max-w-lg lg:max-w-xl w-full bg-slate-900 border border-red-500/30 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
+            <div class="text-6xl mb-3">💥</div>
+            <h2 class="text-4xl md:text-5xl font-black text-red-500 tracking-wider mb-2 text-shadow-arcade">CRASHED!</h2>
+            <p class="text-slate-400 text-xs md:text-sm mb-5">障害物や電車に激突してしまった！</p>
 
-            <div class="w-full space-y-3 mb-4">
-                <div class="bg-slate-800/90 rounded-2xl p-3 border border-slate-700 flex justify-between items-center">
-                    <span class="text-xs font-bold text-slate-400">FINAL SCORE</span>
-                    <span id="go-score" class="text-2xl font-black text-white">0</span>
+            <div class="w-full space-y-3.5 mb-5">
+                <div class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 flex justify-between items-center px-6">
+                    <span class="text-xs md:text-sm font-bold text-slate-400">FINAL SCORE</span>
+                    <span id="go-score" class="text-3xl md:text-4xl font-black text-white">0</span>
                 </div>
 
-                <div class="bg-slate-800/90 rounded-2xl p-3 border border-slate-700 flex justify-between items-center">
-                    <span class="text-xs font-bold text-slate-400">COINS COLLECTED</span>
-                    <span id="go-coins" class="text-xl font-black text-amber-400">0</span>
+                <div class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 flex justify-between items-center px-6">
+                    <span class="text-xs md:text-sm font-bold text-slate-400">COINS COLLECTED</span>
+                    <span id="go-coins" class="text-2xl md:text-3xl font-black text-amber-400">0</span>
                 </div>
 
-                <div id="new-highscore-badge" class="hidden bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black py-1.5 rounded-xl text-xs tracking-widest shadow-md">
+                <div id="new-highscore-badge" class="hidden bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black py-2 rounded-xl text-xs md:text-sm tracking-widest shadow-md">
                     🎉 NEW HIGH SCORE! 🎉
                 </div>
             </div>
 
             <!-- リザルト画面での名前登録 -->
-            <div class="w-full bg-slate-800/80 rounded-2xl p-3 border border-slate-700 flex flex-col gap-2 mb-4">
-                <div class="text-xs font-bold text-slate-400 text-left">名前を登録:</div>
-                <div class="flex gap-2">
-                    <input type="text" id="result-name-input" maxlength="10" placeholder="名前を入力（必須）" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400">
-                    <button id="result-save-name-btn" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition">ランキング登録</button>
+            <div class="w-full bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-2.5 mb-5">
+                <div class="text-xs md:text-sm font-bold text-slate-400 text-left">名前を登録:</div>
+                <div class="flex gap-2.5">
+                    <input type="text" id="result-name-input" maxlength="10" placeholder="名前を入力（必須）" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm md:text-base focus:outline-none focus:border-amber-400">
+                    <button id="result-save-name-btn" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs md:text-sm rounded-xl transition">ランキング登録</button>
                 </div>
             </div>
 
             <!-- リザルト操作ボタン群 -->
-            <div class="flex flex-col gap-2 w-full">
-                <button id="restart-btn" onclick="handleStartGame(event)" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xl rounded-2xl shadow-lg shadow-emerald-500/30 border-2 border-emerald-200 transition transform hover:scale-105 active:scale-95">
+            <div class="flex flex-col gap-3 w-full">
+                <button id="restart-btn" onclick="handleStartGame(event)" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xl md:text-2xl rounded-2xl shadow-lg shadow-emerald-500/30 border-2 border-emerald-200 transition transform hover:scale-105 active:scale-95">
                     もう一度リトライ [ Space / Enter ]
                 </button>
 
-                <div class="grid grid-cols-2 gap-2 w-full">
-                    <button id="result-ranking-btn" class="py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                <div class="grid grid-cols-2 gap-3 w-full">
+                    <button id="result-ranking-btn" class="py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs md:text-base rounded-xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1">
                         🏆 ランキング
                     </button>
-                    <button id="result-quit-btn" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                    <button id="result-quit-btn" class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs md:text-base rounded-xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1">
                         🚪 ゲームをやめる
                     </button>
                 </div>
 
-                <button id="title-btn" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs md:text-sm rounded-xl border border-slate-700 transition">
+                <button id="title-btn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs md:text-base rounded-xl border border-slate-700 transition">
                     タイトルへ戻る [ ESC ]
                 </button>
             </div>
@@ -541,7 +541,7 @@
                 .replace(/</g, '<')
                 .replace(/>/g, '>')
                 .replace(/"/g, '"')
-                .replace(/'/g, '-')
+                .replace(/'/g, '^')
         }
 
         function updateRankingModal() {
@@ -1623,7 +1623,7 @@
 
                 const dx = e.touches[0].clientX - touchStartX;
                 const dy = e.touches[0].clientY - touchStartY;
-                const minSwipe = 25; // iPad用に少し低めの感度に調整
+                const minSwipe = 20; // iPadの大画面向けに適切なスワイプ感度に最適化
 
                 if (Math.abs(dx) > minSwipe || Math.abs(dy) > minSwipe) {
                     touchHandled = true;
@@ -1643,7 +1643,7 @@
 
                 const dx = e.changedTouches[0].clientX - touchStartX;
                 const dy = e.changedTouches[0].clientY - touchStartY;
-                const minSwipe = 25;
+                const minSwipe = 20;
 
                 if (Math.abs(dx) > Math.abs(dy)) {
                     if (Math.abs(dx) > minSwipe) {
@@ -2441,11 +2441,11 @@
             const multBadge = document.getElementById('multiplier-badge');
             if (multBadge) {
                 if (is5xFeverActive) {
-                    multBadge.className = "bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black px-2.5 py-0.5 rounded-full text-xs shadow-lg fever-active flex items-center gap-1";
+                    multBadge.className = "bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black px-3 py-1 rounded-full text-xs md:text-sm shadow-lg fever-active flex items-center gap-1";
                 } else if (is2xActive) {
-                    multBadge.className = "bg-amber-500 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-xs shadow-md flex items-center gap-1";
+                    multBadge.className = "bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-full text-xs md:text-sm shadow-md flex items-center gap-1";
                 } else {
-                    multBadge.className = "bg-slate-800 text-slate-200 font-bold px-2.5 py-0.5 rounded-full text-xs flex items-center gap-1 border border-slate-700";
+                    multBadge.className = "bg-slate-800 text-slate-200 font-bold px-3 py-1 rounded-full text-xs md:text-sm flex items-center gap-1 border border-slate-700";
                 }
             }
 
@@ -2462,7 +2462,7 @@
                     bonusLabel.innerHTML = '🔥 10X FEVER MODE!';
                     bonusLabel.className = 'text-rose-400 font-black animate-pulse flex items-center gap-1';
                     bonusPct.innerText = Math.ceil((feverTime / FEVER_DURATION) * 10) + "s";
-                    bonusContainer.className = "bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border-2 border-rose-500 shadow-lg shadow-rose-500/20 flex flex-col gap-1 w-40 md:w-48 fever-active";
+                    bonusContainer.className = "bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-2xl border-2 border-rose-500 shadow-lg shadow-rose-500/20 flex flex-col gap-1.5 w-48 md:w-60 fever-active";
                 } else {
                     const pct = Math.max(0, Math.min(100, bonusGauge));
                     bonusFill.style.width = pct + "%";
@@ -2470,7 +2470,7 @@
                     bonusLabel.innerHTML = '⚡ BONUS GAUGE';
                     bonusLabel.className = 'text-purple-300 flex items-center gap-1';
                     bonusPct.innerText = Math.floor(bonusGauge) + "%";
-                    bonusContainer.className = "bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-purple-500/40 shadow-lg flex flex-col gap-1 w-40 md:w-48";
+                    bonusContainer.className = "bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-purple-500/40 shadow-lg flex flex-col gap-1.5 w-48 md:w-60";
                 }
             }
 
@@ -2494,9 +2494,9 @@
 
         function createPowerupBadge(label, ratio, colorClass) {
             const pct = Math.max(0, Math.min(100, ratio * 100));
-            return '<div class="bg-slate-900/90 border border-slate-700 p-2 rounded-xl text-xs font-bold shadow-lg">' +
+            return '<div class="bg-slate-900/90 border border-slate-700 p-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg">' +
                 '<div class="flex justify-between text-white mb-1"><span>' + label + '</span></div>' +
-                '<div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">' +
+                '<div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">' +
                 '<div class="' + colorClass + ' h-full transition-all duration-100" style="width: ' + pct + '%"></div>' +
                 '</div></div>';
         }
