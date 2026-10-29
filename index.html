@@ -128,17 +128,8 @@
         <!-- POWER-UP ACTIVE BARS -->
         <div id="powerup-hud" class="absolute top-36 right-4 flex flex-col gap-2 w-40 pointer-events-none"></div>
 
-        <!-- TOUCH / ON-SCREEN CONTROLS (iPad/Mobile用) -->
-        <div id="mobile-controls" class="pointer-events-auto flex justify-between items-end w-full pb-2 opacity-90">
-            <div class="grid grid-cols-3 gap-3 w-40 h-40 md:w-48 md:h-48">
-                <div></div>
-                <button id="btn-up" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">▲</button>
-                <div></div>
-                <button id="btn-left" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">◀</button>
-                <button id="btn-down" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">▼</button>
-                <button id="btn-right" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">▶</button>
-            </div>
-        </div>
+        <!-- TOUCH / ON-SCREEN CONTROLS（非表示化） -->
+        <div id="mobile-controls" class="hidden"></div>
     </div>
 
     <!-- START / MENU SCREEN -->
@@ -182,9 +173,9 @@
                     線路の上を走り続け、障害物や電車を避けてコインを集めよう！時間経過やコイン獲得でスコアが増加します。
                 </div>
                 <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>スタート / リトライ:</span> <span class="font-semibold text-white">画面タップ / Space / Enter</span></div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>レーン移動:</span> <span class="font-semibold text-white">左右スワイプ / ボタン / ← → キー</span></div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>ジャンプ (障害物・低い柵を跳び越す):</span> <span class="font-semibold text-white">上スワイプ / ▲ ボタン / ↑ キー</span></div>
-                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>しゃがむ (高い看板をくぐる):</span> <span class="font-semibold text-white">下スワイプ / ▼ ボタン / ↓ キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>レーン移動:</span> <span class="font-semibold text-white">左右スワイプ / ← → キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>ジャンプ (障害物・低い柵を跳び越す):</span> <span class="font-semibold text-white">上スワイプ / ↑ キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>しゃがむ (高い看板をくぐる):</span> <span class="font-semibold text-white">下スワイプ / ↓ キー</span></div>
                 <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>電車登り:</span> <span class="font-semibold text-amber-300">スロープ（坂）付き電車から屋根へ走れる！</span></div>
                 <div class="flex justify-between"><span>タイトルへ戻る:</span> <span class="font-semibold text-sky-300">ESC キー</span></div>
             </div>
@@ -1666,29 +1657,6 @@
                     }
                 }
             }, { passive: true });
-
-            // タッチボタン操作
-            const btnL = document.getElementById('btn-left');
-            const btnR = document.getElementById('btn-right');
-            const btnU = document.getElementById('btn-up');
-            const btnD = document.getElementById('btn-down');
-
-            const bindBtn = (el, action) => {
-                if (!el) return;
-                const trigger = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    soundFX.init();
-                    action();
-                };
-                el.addEventListener('touchstart', trigger, { passive: false });
-                el.addEventListener('click', trigger);
-            };
-
-            bindBtn(btnL, () => moveLane(-1));
-            bindBtn(btnR, () => moveLane(1));
-            bindBtn(btnU, () => jump());
-            bindBtn(btnD, () => slide());
 
             const titleBtn = document.getElementById('title-btn');
             if (titleBtn) {
