@@ -1,0 +1,2624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Subway Surfers 3D - Endless Runner</title>
+    <!-- Tailwind CSS for UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            touch-action: none; /* スマホ・iPadのスクロールやズームを防止 */
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: fixed; /* iPadでのスクロール・バウンスを強力防止 */
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #0f172a;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            outline: none;
+        }
+        /* iPad Safe Area 判別・余白対応 */
+        .safe-area-padding {
+            padding-top: env(safe-area-inset-top, 16px);
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+            padding-left: env(safe-area-inset-left, 16px);
+            padding-right: env(safe-area-inset-right, 16px);
+        }
+        .text-shadow-arcade {
+            text-shadow: 3px 3px 0px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        .touch-btn {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            transition: transform 0.1s ease, background 0.1s ease;
+        }
+        .touch-btn:active {
+            background: rgba(245, 158, 11, 0.6);
+            transform: scale(0.92);
+        }
+        @keyframes feverPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px #ec4899); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 16px #f43f5e); }
+        }
+        .fever-active {
+            animation: feverPulse 0.8s infinite ease-in-out;
+        }
+        ::-webkit-scrollbar { display: none; }
+
+        /* ランキング用スタイル */
+        .rank-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #334155; gap: 6px; }
+        .rank-item:last-child { border-bottom: none; }
+        .rank-num { font-weight: bold; width: 28px; font-size: 1.1rem; text-align: center; }
+        .rank-1 { color: #f1c40f; }
+        .rank-2 { color: #cbd5e1; }
+        .rank-3 { color: #cd7f32; }
+        .rank-name { flex-grow: 1; text-align: left; padding-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; }
+        .rank-val { font-weight: bold; color: #facc15; font-size: 1.1rem; white-space: nowrap; }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none bg-slate-900 text-white">
+
+    <!-- 3D Canvas Container -->
+    <div id="game-container" class="absolute inset-0 z-0"></div>
+
+    <!-- UI OVERLAY -->
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6 safe-area-padding">
+        
+        <!-- TOP HUD -->
+        <div id="top-hud" class="flex justify-between items-start w-full opacity-0 transition-opacity duration-300">
+            <!-- Left Stats -->
+            <div class="flex flex-col gap-2">
+                <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-700/60 shadow-lg flex items-center gap-3">
+                    <span class="text-xs font-bold text-amber-400 tracking-wider">SCORE</span>
+                    <span id="score-text" class="text-2xl md:text-3xl font-black text-white tracking-wider">0</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <div id="multiplier-badge" class="bg-amber-500 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-xs shadow-md flex items-center gap-1 transition-colors duration-300">
+                        <span>MULTIPLIER</span>
+                        <span id="multiplier-text" class="text-sm">x1</span>
+                    </div>
+                    <div class="bg-slate-800/80 px-3 py-0.5 rounded-full text-xs font-semibold text-slate-300 border border-slate-700">
+                        HI: <span id="hud-highscore-text">0</span>
+                    </div>
+                </div>
+
+                <!-- BONUS GAUGE BAR -->
+                <div id="bonus-gauge-container" class="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-purple-500/40 shadow-lg flex flex-col gap-1 w-40 md:w-48 transition-all duration-300">
+                    <div class="flex justify-between items-center text-[10px] font-black tracking-wider">
+                        <span id="bonus-label" class="text-purple-300 flex items-center gap-1">⚡ BONUS GAUGE</span>
+                        <span id="bonus-pct-text" class="text-purple-400">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-950/80 h-2.5 rounded-full overflow-hidden p-0.5 border border-purple-900/50">
+                        <div id="bonus-fill-bar" class="bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Stats -->
+            <div class="flex flex-col items-end gap-2">
+                <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-700/60 shadow-lg flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-amber-400 border-2 border-yellow-200 flex items-center justify-center text-slate-900 font-black text-xs shadow-inner">
+                        $
+                    </div>
+                    <span id="coins-text" class="text-xl md:text-2xl font-black text-amber-300">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- POWER-UP ACTIVE BARS -->
+        <div id="powerup-hud" class="absolute top-36 right-4 flex flex-col gap-2 w-40 pointer-events-none"></div>
+
+        <!-- TOUCH / ON-SCREEN CONTROLS (iPad/Mobile用) -->
+        <div id="mobile-controls" class="pointer-events-auto flex justify-between items-end w-full pb-2 opacity-90">
+            <div class="grid grid-cols-3 gap-3 w-40 h-40 md:w-48 md:h-48">
+                <div></div>
+                <button id="btn-up" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">▲</button>
+                <div></div>
+                <button id="btn-left" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">◀</button>
+                <button id="btn-down" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">▼</button>
+                <button id="btn-right" class="touch-btn rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-md">▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- START / MENU SCREEN -->
+    <div id="start-screen" onclick="handleStartGame(event)" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-transparent p-4 md:p-6 overflow-y-auto cursor-pointer">
+        <div class="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-3xl p-5 md:p-7 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto max-h-[90vh] overflow-y-auto cursor-default">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl"></div>
+
+            <div class="inline-block bg-amber-500/10 border border-amber-500/30 px-4 py-1 rounded-full text-amber-400 text-xs font-bold tracking-widest mb-2">
+                3D ENDLESS RUNNER (文化祭特別版)
+            </div>
+
+            <h1 class="text-3xl md:text-5xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300 text-shadow-arcade mb-1">
+                SUBWAY RUNNER
+            </h1>
+            <p class="text-slate-300 text-xs md:text-sm mb-4">迫りくる電車や障害物をかわし、ハイスコアを目指せ！</p>
+
+            <div class="w-full bg-slate-800/80 rounded-2xl p-2.5 border border-slate-700 mb-3 flex justify-between items-center">
+                <span class="text-xs font-bold text-slate-400">HIGH SCORE</span>
+                <span id="menu-highscore" class="text-2xl font-black text-amber-400">0</span>
+            </div>
+
+            <button id="start-btn" onclick="handleStartGame(event)" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xl rounded-2xl shadow-lg shadow-amber-500/30 border-2 border-yellow-200 transition transform hover:scale-105 active:scale-95 mb-3">
+                タップ / クリック / [ Space / Enter ] でスタート
+            </button>
+
+            <!-- アクションボタン群 -->
+            <div class="grid grid-cols-2 gap-3 w-full mb-3">
+                <button id="ranking-btn" onclick="event.stopPropagation()" class="py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm rounded-2xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                    🏆 ランキング
+                </button>
+                <button id="quit-btn" onclick="event.stopPropagation()" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-2xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                    🚪 ゲームをやめる
+                </button>
+            </div>
+
+            <!-- 遊び方・操作方法 -->
+            <div class="w-full bg-slate-950/70 rounded-xl p-3 border border-slate-800 text-left text-xs text-slate-300 space-y-1 mb-2">
+                <div class="font-bold text-amber-400 mb-1 flex items-center gap-1">🎮 遊び方 & 操作方法:</div>
+                <div class="text-[11px] text-slate-400 mb-1.5 leading-relaxed">
+                    線路の上を走り続け、障害物や電車を避けてコインを集めよう！時間経過やコイン獲得でスコアが増加します。
+                </div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>スタート / リトライ:</span> <span class="font-semibold text-white">画面タップ / Space / Enter</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>レーン移動:</span> <span class="font-semibold text-white">左右スワイプ / ボタン / ← → キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>ジャンプ (障害物・低い柵を跳び越す):</span> <span class="font-semibold text-white">上スワイプ / ▲ ボタン / ↑ キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>しゃがむ (高い看板をくぐる):</span> <span class="font-semibold text-white">下スワイプ / ▼ ボタン / ↓ キー</span></div>
+                <div class="flex justify-between border-b border-slate-800/60 pb-0.5"><span>電車登り:</span> <span class="font-semibold text-amber-300">スロープ（坂）付き電車から屋根へ走れる！</span></div>
+                <div class="flex justify-between"><span>タイトルへ戻る:</span> <span class="font-semibold text-sky-300">ESC キー</span></div>
+            </div>
+
+            <!-- アイテムの説明 -->
+            <div class="w-full bg-slate-950/70 rounded-xl p-3 border border-slate-800 text-left text-xs text-slate-300 space-y-1.5 mb-2">
+                <div class="font-bold text-cyan-400 mb-1 flex items-center gap-1">✨ 出現アイテム一覧:</div>
+                <div class="flex items-start gap-2">
+                    <span class="px-1.5 py-0.5 bg-red-500/20 border border-red-500/50 rounded text-red-400 font-bold text-[10px] shrink-0">🧲 マグネット</span>
+                    <span class="text-[11px] text-slate-300">一定時間、周囲のコインを自動的に吸い寄せます。</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/50 rounded text-amber-400 font-bold text-[10px] shrink-0">⭐ 2X スコア</span>
+                    <span class="text-[11px] text-slate-300">一定時間、獲得できるスコアが2倍にアップします。</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="px-1.5 py-0.5 bg-cyan-500/20 border border-cyan-500/50 rounded text-cyan-400 font-bold text-[10px] shrink-0">🛡️ シールド</span>
+                    <span class="text-[11px] text-slate-300">ホバーボードを装着！1回だけ障害物衝突を防ぎます。</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="px-1.5 py-0.5 bg-pink-500/20 border border-pink-500/50 rounded text-pink-400 font-bold text-[10px] shrink-0">⚡ ボーナス</span>
+                    <span class="text-[11px] text-slate-300">ゲージが大幅増加！100%で<strong class="text-pink-400">10倍フィーバー</strong>発動！</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/50 rounded text-emerald-400 font-bold text-[10px] shrink-0">💥 クラッシャー</span>
+                    <span class="text-[11px] text-slate-300">一定時間、全身超パワーの肉体派マッチョ化！走るだけでハードルを豪快に蹴散らします！（電車は不可）</span>
+                </div>
+            </div>
+
+            <button id="sound-toggle" onclick="event.stopPropagation()" class="mt-1 text-xs font-bold text-slate-400 hover:text-white flex items-center gap-2">
+                <span id="sound-icon">🔊</span> Sound: <span id="sound-status" class="text-emerald-400">ON</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 交代案内モーダル -->
+    <div id="change-player-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-6">
+        <div class="text-3xl md:text-4xl font-black text-amber-400 text-center tracking-wider text-shadow-arcade animate-pulse">
+            つぎの人に<br>交代してね！
+        </div>
+    </div>
+
+    <!-- ランキングモーダル -->
+    <div id="ranking-modal" class="hidden absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-lg p-6">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center max-h-[85vh]">
+            <h2 class="text-2xl md:text-3xl font-black text-amber-400 tracking-wider mb-4">🏆 ハイスコアランキング</h2>
+            
+            <div class="w-full flex gap-2 mb-4">
+                <input type="text" id="player-name-input" maxlength="10" placeholder="名前を入力して登録" class="flex-1 px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400">
+                <button id="save-name-btn" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition">名前を登録 / 変更</button>
+            </div>
+
+            <div id="ranking-list" class="w-full max-h-60 overflow-y-auto bg-slate-950/60 rounded-xl p-2 border border-slate-800 text-left mb-4"></div>
+
+            <button id="close-ranking-btn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 transition">閉じる</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN (RESULT) -->
+    <div id="gameover-screen" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-lg p-6 overflow-y-auto">
+        <div class="max-w-md w-full bg-slate-900 border border-red-500/30 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
+            <div class="text-5xl mb-2">💥</div>
+            <h2 class="text-3xl md:text-4xl font-black text-red-500 tracking-wider mb-1 text-shadow-arcade">CRASHED!</h2>
+            <p class="text-slate-400 text-xs mb-4">障害物や電車に激突してしまった！</p>
+
+            <div class="w-full space-y-3 mb-4">
+                <div class="bg-slate-800/90 rounded-2xl p-3 border border-slate-700 flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-400">FINAL SCORE</span>
+                    <span id="go-score" class="text-2xl font-black text-white">0</span>
+                </div>
+
+                <div class="bg-slate-800/90 rounded-2xl p-3 border border-slate-700 flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-400">COINS COLLECTED</span>
+                    <span id="go-coins" class="text-xl font-black text-amber-400">0</span>
+                </div>
+
+                <div id="new-highscore-badge" class="hidden bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black py-1.5 rounded-xl text-xs tracking-widest shadow-md">
+                    🎉 NEW HIGH SCORE! 🎉
+                </div>
+            </div>
+
+            <!-- リザルト画面での名前登録 -->
+            <div class="w-full bg-slate-800/80 rounded-2xl p-3 border border-slate-700 flex flex-col gap-2 mb-4">
+                <div class="text-xs font-bold text-slate-400 text-left">名前を登録:</div>
+                <div class="flex gap-2">
+                    <input type="text" id="result-name-input" maxlength="10" placeholder="名前を入力（必須）" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400">
+                    <button id="result-save-name-btn" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition">ランキング登録</button>
+                </div>
+            </div>
+
+            <!-- リザルト操作ボタン群 -->
+            <div class="flex flex-col gap-2 w-full">
+                <button id="restart-btn" onclick="handleStartGame(event)" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xl rounded-2xl shadow-lg shadow-emerald-500/30 border-2 border-emerald-200 transition transform hover:scale-105 active:scale-95">
+                    もう一度リトライ [ Space / Enter ]
+                </button>
+
+                <div class="grid grid-cols-2 gap-2 w-full">
+                    <button id="result-ranking-btn" class="py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-md border border-sky-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                        🏆 ランキング
+                    </button>
+                    <button id="result-quit-btn" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-md border border-rose-400 transition transform active:scale-95 flex items-center justify-center gap-1">
+                        🚪 ゲームをやめる
+                    </button>
+                </div>
+
+                <button id="title-btn" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs md:text-sm rounded-xl border border-slate-700 transition">
+                    タイトルへ戻る [ ESC ]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME LOGIC JAVASCRIPT -->
+    <script>
+        /* --- GLOBAL START HANDLER --- */
+        window.handleStartGame = function(e) {
+            if (e) {
+                if (e.stopPropagation) e.stopPropagation();
+                if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT')) {
+                    if (e.target.id !== 'start-btn' && e.target.id !== 'restart-btn') return;
+                }
+            }
+            try {
+                if (soundFX) soundFX.init();
+            } catch(err) {
+                console.warn("Audio init error:", err);
+            }
+            startGame();
+        };
+
+        /* --- AUDIO SYNTHESIZER MODULE (Web Audio API) --- */
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) {
+                            this.ctx = new AudioCtx();
+                        }
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume().catch(() => {});
+                    }
+                } catch (e) {
+                    console.warn("Audio Context init error:", e);
+                }
+            }
+
+            playCoin() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(987.77, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1318.51, this.ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.12);
+                } catch (e) {}
+            }
+
+            playJump() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.22);
+                } catch (e) {}
+            }
+
+            playSlide() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                } catch (e) {}
+            }
+
+            playPowerup() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const notes = [329.63, 415.30, 493.88, 659.25, 880.00];
+                    notes.forEach((freq, i) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.04);
+                        gain.gain.setValueAtTime(0.2, this.ctx.currentTime + i * 0.04);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.04 + 0.12);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(this.ctx.currentTime + i * 0.04);
+                        osc.stop(this.ctx.currentTime + i * 0.04 + 0.12);
+                    });
+                } catch (e) {}
+            }
+
+            playCrash() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const bufferSize = this.ctx.sampleRate * 0.3;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = this.ctx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+                    filter.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.3);
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    whiteNoise.start();
+                } catch (e) {}
+            }
+
+            playHoverboard() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(660, this.ctx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.3);
+                } catch (e) {}
+            }
+        }
+
+        const soundFX = new SoundEffects();
+
+        /* --- RANKING & NG WORDS SYSTEM --- */
+        const NG_WORDS = [
+            'ちんこ', 'まんこ', 'うんこ', 'うんち', 'ちんちん', 'ちんぽ', 'ぽこちん',
+            '野獣先輩', 'やりますねぇ', '死ね', 'バカ', 'ゴミ', '山神', 'クリトリス',
+            'オナアキ', 'ヒトラー', 'スターリン', 'セックス', '精子', '精液', 'ザーメン',
+            'ザー汁', '金玉汁', 'ひで', 'エッチ', '赤ちゃん製造ミルク', '金玉', '障害者', 'HDHD', 'ランランルー'
+        ];
+
+        let lastSavedRecordId = null;
+
+        function containsNgWord(str) {
+            if (!str) return false;
+            const normalized = str.toLowerCase();
+            return NG_WORDS.some(ng => normalized.includes(ng.toLowerCase()));
+        }
+
+        function getCurrentPlayerName() {
+            return localStorage.getItem('subway_runner_current_player') || '';
+        }
+
+        function setCurrentPlayerName(name) {
+            const trimmed = name.trim();
+            localStorage.setItem('subway_runner_current_player', trimmed);
+            return trimmed;
+        }
+
+        function resetCurrentPlayerName() {
+            localStorage.removeItem('subway_runner_current_player');
+        }
+
+        function getRankingRecords() {
+            try {
+                const saved = localStorage.getItem('subway_runner_rankings');
+                if (saved) return JSON.parse(saved);
+            } catch (e) {}
+            return [];
+        }
+
+        function isNameTaken(targetName, currentRecordId = null) {
+            const records = getRankingRecords();
+            return records.some(r => r.name === targetName && r.id !== currentRecordId);
+        }
+
+        function saveScoreToRanking(name, scoreVal) {
+            if (!name || name.trim() === '' || scoreVal <= 0) {
+                return { recordId: null, isNewRecord: false };
+            }
+            const records = getRankingRecords();
+            let existingIndex = records.findIndex(r => r.id === lastSavedRecordId);
+            let recordId;
+            let isNewRecord = false;
+
+            if (existingIndex !== -1) {
+                if (scoreVal > records[existingIndex].highScore) {
+                    records[existingIndex].highScore = scoreVal;
+                    isNewRecord = true;
+                }
+                records[existingIndex].name = name;
+                recordId = records[existingIndex].id;
+            } else {
+                recordId = Date.now() + Math.floor(Math.random() * 1000);
+                records.push({ name: name, highScore: scoreVal, id: recordId });
+                isNewRecord = true;
+            }
+
+            records.sort((a, b) => b.highScore - a.highScore);
+            if (records.length > 50) records.pop();
+
+            localStorage.setItem('subway_runner_rankings', JSON.stringify(records));
+
+            if (records.length > 0) {
+                highScore = records[0].highScore;
+                localStorage.setItem('subway_high_score', highScore);
+            }
+
+            return { recordId, isNewRecord };
+        }
+
+        function updateRecordName(recordId, newName) {
+            if (!recordId) return;
+            const records = getRankingRecords();
+            const target = records.find(r => r.id === recordId);
+            if (target) {
+                target.name = newName;
+                localStorage.setItem('subway_runner_rankings', JSON.stringify(records));
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&')
+                .replace(/</g, '<')
+                .replace(/>/g, '>')
+                .replace(/"/g, '"')
+                .replace(/'/g, '-')
+        }
+
+        function updateRankingModal() {
+            const currentName = getCurrentPlayerName();
+            const inputEl = document.getElementById('player-name-input');
+            if (inputEl) inputEl.value = currentName;
+
+            const userRecords = getRankingRecords();
+            userRecords.sort((a, b) => b.highScore - a.highScore);
+
+            const rankingListEl = document.getElementById('ranking-list');
+            if (!rankingListEl) return;
+            rankingListEl.innerHTML = '';
+
+            if (userRecords.length === 0) {
+                rankingListEl.innerHTML = '<div style="text-align:center; color:#a4b0be; padding:20px;">まだ記録がありません</div>';
+                return;
+            }
+
+            userRecords.forEach((user, index) => {
+                const rank = index + 1;
+                let rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
+                const isMyLatest = (user.id === lastSavedRecordId);
+                const myTag = isMyLatest ? '<span style="font-size:0.75rem; background:#2ed573; color:#111; padding:2px 6px; border-radius:10px; margin-left:6px; font-weight:bold;">あなた</span>' : '';
+
+                const itemEl = document.createElement('div');
+                itemEl.className = 'rank-item';
+                if (isMyLatest) {
+                    itemEl.style.backgroundColor = 'rgba(46, 213, 115, 0.15)';
+                    itemEl.style.borderRadius = '6px';
+                }
+
+                itemEl.innerHTML = `
+                    <span class="rank-num ${rankClass}">${rank}</span>
+                    <span class="rank-name">${escapeHtml(user.name)}${myTag}</span>
+                    <span class="rank-val">${user.highScore.toLocaleString()}</span>
+                `;
+                rankingListEl.appendChild(itemEl);
+            });
+        }
+
+        /* --- COMMON SCREEN NAVIGATION & QUIT HANDLERS --- */
+        function returnToTitle() {
+            const rankingModal = document.getElementById('ranking-modal');
+            if (rankingModal && !rankingModal.classList.contains('hidden')) {
+                rankingModal.classList.add('hidden');
+                return;
+            }
+
+            isPlaying = false;
+            const goScreen = document.getElementById('gameover-screen');
+            const stScreen = document.getElementById('start-screen');
+            if (goScreen) goScreen.classList.add('hidden');
+            if (stScreen) stScreen.classList.remove('hidden');
+            setupTitleScene();
+        }
+
+        function triggerQuitProcess() {
+            const changeModal = document.getElementById('change-player-modal');
+            if (changeModal) changeModal.classList.remove('hidden');
+            setTimeout(() => {
+                if (changeModal) changeModal.classList.add('hidden');
+                resetCurrentPlayerName();
+                lastSavedRecordId = null;
+                const pInput = document.getElementById('player-name-input');
+                const rInput = document.getElementById('result-name-input');
+                if (pInput) pInput.value = '';
+                if (rInput) rInput.value = '';
+
+                returnToTitle();
+            }, 3000);
+        }
+
+        /* --- GAME ENGINE & CONSTANTS --- */
+        const LANES = [2.6, 0, -2.6];
+        const LANE_COUNT = 3;
+        const TRAIN_LENGTH = 16;
+        
+        let scene, camera, renderer;
+        let playerGroup, runnerMesh, hoverboardMesh, shieldMesh;
+        let torsoMesh, legL, legR, armL, armR, muscleGroup;
+
+        // タイトル専用3Dオブジェクト
+        let titleObjects = [];
+        let titleCameraAngle = 0;
+
+        // Gameplay state
+        let isPlaying = false;
+        let currentLane = 1;
+        let targetX = LANES[1];
+        let playerY = 0;
+        let playerZ = 0;
+        let currentGroundY = 0;
+        
+        let gameSpeed = 0.58;
+        const BASE_SPEED = 0.58;
+
+        let score = 0;
+        let scoreAccumulator = 0;
+        let lastFrameTime = performance.now();
+        let coins = 0;
+        let multiplier = 1;
+        let highScore = parseInt(localStorage.getItem('subway_high_score') || '0');
+
+        // Animation / Physics
+        let isJumping = false;
+        let jumpVelocity = 0;
+        const GRAVITY = 0.020;
+        const JUMP_STRENGTH = 0.32; 
+
+        let isSliding = false;
+        let slideTimer = 0;
+        const SLIDE_DURATION = 35;
+
+        // Active Powerups
+        let isHoverboardActive = false;
+        let hoverboardTime = 0;
+
+        let isMagnetActive = false;
+        let magnetTime = 0;
+
+        let is2xActive = false;
+        let twoXTime = 0;
+
+        let isHurdleBreakerActive = false;
+        let hurdleBreakerTime = 0;
+
+        // Bonus Gauge System
+        let bonusGauge = 0;
+        const MAX_BONUS_GAUGE = 100;
+        let is5xFeverActive = false;
+        let feverTime = 0;
+        const FEVER_DURATION = 600;
+
+        let invulnerableTime = 0;
+
+        // Object containers
+        const trackChunks = [];
+        const obstacles = [];
+        const flyingObstacles = [];
+        const collectibles = [];
+        const powerups = [];
+        const particles = [];
+        let nextSpawnZ = 40;
+
+        /* --- INITIALIZATION --- */
+        function init() {
+            try {
+                const menuHs = document.getElementById('menu-highscore');
+                const hudHs = document.getElementById('hud-highscore-text');
+                if (menuHs) menuHs.innerText = highScore;
+                if (hudHs) hudHs.innerText = highScore;
+
+                if (typeof THREE === 'undefined') {
+                    console.error("Three.js library is not loaded.");
+                    alert("3Dライブラリの読み込みに失敗しました。ページを再読み込みしてください。");
+                    return;
+                }
+
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x38bdf8);
+                scene.fog = new THREE.FogExp2(0x38bdf8, 0.008);
+
+                camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+
+                const container = document.getElementById('game-container');
+                renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                if (container) container.appendChild(renderer.domElement);
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+                scene.add(ambientLight);
+
+                const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                sunLight.position.set(20, 40, -20);
+                sunLight.castShadow = true;
+                sunLight.shadow.mapSize.width = 1024;
+                sunLight.shadow.mapSize.height = 1024;
+                sunLight.shadow.camera.near = 0.5;
+                sunLight.shadow.camera.far = 150;
+                sunLight.shadow.camera.left = -20;
+                sunLight.shadow.camera.right = 20;
+                sunLight.shadow.camera.top = 20;
+                sunLight.shadow.camera.bottom = -20;
+                scene.add(sunLight);
+
+                createPlayer();
+                buildInitialTracks();
+
+                setupTitleScene();
+
+                window.addEventListener('resize', onWindowResize);
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(onWindowResize, 200);
+                });
+
+                animate(performance.now());
+            } catch (e) {
+                console.error("Initialization error:", e);
+            }
+        }
+
+        /* --- TITLE SCREEN HELPER MESH CREATORS --- */
+        function createTitleTrainMesh(x, z, hasRamp) {
+            const trainGroup = new THREE.Group();
+            trainGroup.position.set(x, 0, z);
+
+            const trainLength = TRAIN_LENGTH;
+            const trainHeight = 3.6;
+
+            const bodyGeo = new THREE.BoxGeometry(2.3, trainHeight, trainLength);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.2 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = trainHeight / 2;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            trainGroup.add(body);
+
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 0.8 });
+
+            const frontGlassGeo = new THREE.BoxGeometry(2.1, 1.0, 0.1);
+            const frontGlass = new THREE.Mesh(frontGlassGeo, glassMat);
+            frontGlass.position.set(0, trainHeight - 0.8, -trainLength / 2 - 0.01);
+            trainGroup.add(frontGlass);
+
+            const rearGlassGeo = new THREE.BoxGeometry(2.1, 1.0, 0.1);
+            const rearGlass = new THREE.Mesh(rearGlassGeo, glassMat);
+            rearGlass.position.set(0, trainHeight - 0.8, trainLength / 2 + 0.01);
+            trainGroup.add(rearGlass);
+
+            const lightGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            
+            const lightL = new THREE.Mesh(lightGeo, headLightMat);
+            lightL.rotation.x = Math.PI / 2;
+            lightL.position.set(-0.7, 0.8, -trainLength / 2 - 0.05);
+            trainGroup.add(lightL);
+
+            const lightR = lightL.clone();
+            lightR.position.x = 0.7;
+            trainGroup.add(lightR);
+
+            const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const tailL = new THREE.Mesh(lightGeo, tailLightMat);
+            tailL.rotation.x = Math.PI / 2;
+            tailL.position.set(-0.7, 0.8, trainLength / 2 + 0.05);
+            trainGroup.add(tailL);
+
+            const tailR = tailL.clone();
+            tailR.position.x = 0.7;
+            trainGroup.add(tailR);
+
+            const sideWindowGeo = new THREE.BoxGeometry(0.08, 0.9, 1.6);
+            const numSideWindows = 5;
+            const windowSpacing = (trainLength - 4) / (numSideWindows - 1);
+            const startWindowZ = - (trainLength - 4) / 2;
+
+            for (let i = 0; i < numSideWindows; i++) {
+                const wz = startWindowZ + i * windowSpacing;
+                const sideWinL = new THREE.Mesh(sideWindowGeo, glassMat);
+                sideWinL.position.set(-1.16, trainHeight - 0.9, wz);
+                trainGroup.add(sideWinL);
+
+                const sideWinR = new THREE.Mesh(sideWindowGeo, glassMat);
+                sideWinR.position.set(1.16, trainHeight - 0.9, wz);
+                trainGroup.add(sideWinR);
+            }
+
+            const stripeGeo = new THREE.BoxGeometry(2.32, 0.3, trainLength + 0.02);
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+            stripe.position.y = 1.2;
+            trainGroup.add(stripe);
+
+            if (hasRamp) {
+                const rampLength = 7.0;
+                const rampGeo = new THREE.BoxGeometry(2.2, 0.2, rampLength);
+                const rampMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.8 });
+                const ramp = new THREE.Mesh(rampGeo, rampMat);
+                ramp.position.set(0, trainHeight / 2, -trainLength / 2 - rampLength / 2);
+                ramp.rotation.x = -Math.atan2(trainHeight, rampLength);
+                trainGroup.add(ramp);
+            }
+
+            return trainGroup;
+        }
+
+        function createTitleHurdleMesh(x, z, isHigh) {
+            const group = new THREE.Group();
+            group.position.set(x, 0, z);
+
+            const barMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+
+            if (!isHigh) {
+                const barGeo = new THREE.BoxGeometry(2.3, 0.25, 0.2);
+                const bar = new THREE.Mesh(barGeo, barMat);
+                bar.position.y = 0.8;
+                bar.castShadow = true;
+                group.add(bar);
+
+                const legGeo = new THREE.BoxGeometry(0.15, 0.8, 0.15);
+                const legL = new THREE.Mesh(legGeo, stripeMat);
+                legL.position.set(-1.0, 0.4, 0);
+                group.add(legL);
+
+                const legR = legL.clone();
+                legR.position.x = 1.0;
+                group.add(legR);
+            } else {
+                const topBarGeo = new THREE.BoxGeometry(2.3, 0.8, 0.2);
+                const topBar = new THREE.Mesh(topBarGeo, barMat);
+                topBar.position.y = 2.4;
+                topBar.castShadow = true;
+                group.add(topBar);
+
+                const poleGeo = new THREE.BoxGeometry(0.15, 2.8, 0.15);
+                const poleL = new THREE.Mesh(poleGeo, stripeMat);
+                poleL.position.set(-1.0, 1.4, 0);
+                group.add(poleL);
+
+                const poleR = poleL.clone();
+                poleR.position.x = 1.0;
+                group.add(poleR);
+            }
+
+            return group;
+        }
+
+        /* --- TITLE SCREEN 3D JUMP SCENE --- */
+        function setupTitleScene() {
+            isPlaying = false;
+            score = 0;
+            playerZ = 0;
+
+            isHurdleBreakerActive = false;
+            hurdleBreakerTime = 0;
+            isHoverboardActive = false;
+            hoverboardTime = 0;
+            isMagnetActive = false;
+            magnetTime = 0;
+            is2xActive = false;
+            twoXTime = 0;
+            bonusGauge = 0;
+            is5xFeverActive = false;
+            feverTime = 0;
+            invulnerableTime = 0;
+
+            const topHud = document.getElementById('top-hud');
+            if (topHud) topHud.classList.add('opacity-0');
+            const powerupHud = document.getElementById('powerup-hud');
+            if (powerupHud) powerupHud.innerHTML = '';
+
+            for (let i = 0; i < trackChunks.length; i++) {
+                if (trackChunks[i]) trackChunks[i].position.z = i * 20 - 100;
+            }
+
+            obstacles.forEach(o => disposeObject(o));
+            flyingObstacles.forEach(fo => disposeObject(fo));
+            collectibles.forEach(c => disposeObject(c));
+            powerups.forEach(p => disposeObject(p));
+            particles.forEach(pt => disposeObject(pt));
+
+            obstacles.length = 0;
+            flyingObstacles.length = 0;
+            collectibles.length = 0;
+            powerups.length = 0;
+            particles.length = 0;
+
+            if (playerGroup) {
+                playerGroup.position.set(0, 1.85, 0);
+                playerGroup.visible = true;
+            }
+            if (runnerMesh) {
+                runnerMesh.position.set(0, 0, 0);
+                runnerMesh.rotation.set(0.2, -0.35, 0.1);
+                runnerMesh.scale.set(1.1, 1.1, 1.1);
+            }
+            if (torsoMesh) torsoMesh.scale.set(1, 1, 1);
+            if (armL) { armL.scale.set(1, 1, 1); armL.position.set(-0.48, 1.15, 0); }
+            if (armR) { armR.scale.set(1, 1, 1); armR.position.set(0.48, 1.15, 0); }
+            if (legL) { legL.scale.set(1, 1, 1); }
+            if (legR) { legR.scale.set(1, 1, 1); }
+            if (muscleGroup) muscleGroup.visible = false;
+
+            if (legL) legL.rotation.x = -1.2;
+            if (legR) legR.rotation.x = 0.9;
+            if (armL) armL.rotation.set(0.4, 0, -0.8);
+            if (armR) armR.rotation.set(-0.9, 0, 0.7);
+
+            if (hoverboardMesh) hoverboardMesh.visible = false;
+            if (shieldMesh) shieldMesh.visible = false;
+
+            cleanupTitleScene();
+
+            LANES.forEach((x, idx) => {
+                const bgTrain = createTitleTrainMesh(x, -18, idx === 1);
+                scene.add(bgTrain);
+                titleObjects.push(bgTrain);
+            });
+
+            const frontHurdle = createTitleHurdleMesh(0, 0.1, false);
+            scene.add(frontHurdle);
+            titleObjects.push(frontHurdle);
+
+            const frontHurdleL = createTitleHurdleMesh(LANES[0], 6, true);
+            scene.add(frontHurdleL);
+            titleObjects.push(frontHurdleL);
+
+            const frontTrain = createTitleTrainMesh(LANES[1], 14, false);
+            scene.add(frontTrain);
+            titleObjects.push(frontTrain);
+
+            const frontHurdleR = createTitleHurdleMesh(LANES[2], 10, false);
+            scene.add(frontHurdleR);
+            titleObjects.push(frontHurdleR);
+
+            const coinGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.08, 16);
+            const coinMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8, roughness: 0.2 });
+
+            for (let i = 0; i < 7; i++) {
+                const coin = new THREE.Mesh(coinGeo, coinMat);
+                const angle = (i / 6) * Math.PI;
+                const radius = 2.4;
+                coin.position.set(Math.cos(angle) * radius * 0.7, Math.sin(angle) * 1.6 + 0.6, Math.cos(angle) * 1.0);
+                coin.rotation.x = Math.PI / 2;
+                coin.userData = { isCoin: true };
+                scene.add(coin);
+                titleObjects.push(coin);
+            }
+
+            titleCameraAngle = 0;
+        }
+
+        function cleanupTitleScene() {
+            if (titleObjects && titleObjects.length > 0) {
+                titleObjects.forEach(obj => disposeObject(obj));
+                titleObjects = [];
+            }
+        }
+
+        function updateTitleAnimation() {
+            titleCameraAngle += 0.010;
+
+            const camRadius = 7.5;
+            camera.position.x = Math.sin(titleCameraAngle) * camRadius;
+            camera.position.z = -Math.cos(titleCameraAngle) * camRadius;
+            camera.position.y = 3.2 + Math.sin(titleCameraAngle * 0.5) * 0.5;
+            camera.lookAt(0, 1.8, 0);
+
+            titleObjects.forEach(obj => {
+                if (obj.userData && obj.userData.isCoin) {
+                    obj.rotation.z += 0.04;
+                }
+            });
+
+            if (playerGroup) {
+                playerGroup.position.y = 1.85 + Math.sin(titleCameraAngle * 2) * 0.08;
+            }
+        }
+
+        /* --- PLAYER MODEL CREATION --- */
+        function createPlayer() {
+            playerGroup = new THREE.Group();
+
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.5 });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+            const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            const capMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
+            const absMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.4 });
+
+            runnerMesh = new THREE.Group();
+
+            const torsoGeo = new THREE.BoxGeometry(0.7, 0.9, 0.4);
+            torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
+            torsoMesh.position.y = 1.15;
+            torsoMesh.castShadow = true;
+            runnerMesh.add(torsoMesh);
+
+            const headGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.position.y = 1.85;
+            head.castShadow = true;
+            runnerMesh.add(head);
+
+            const capGeo = new THREE.BoxGeometry(0.5, 0.15, 0.55);
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.set(0, 2.05, -0.05);
+            runnerMesh.add(cap);
+
+            const visorGeo = new THREE.BoxGeometry(0.48, 0.04, 0.25);
+            const visor = new THREE.Mesh(visorGeo, capMat);
+            visor.position.set(0, 2.0, 0.3);
+            runnerMesh.add(visor);
+
+            const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+            armL = new THREE.Mesh(armGeo, shirtMat);
+            armL.position.set(-0.48, 1.15, 0);
+            armL.castShadow = true;
+            runnerMesh.add(armL);
+
+            armR = new THREE.Mesh(armGeo, shirtMat);
+            armR.position.set(0.48, 1.15, 0);
+            armR.castShadow = true;
+            runnerMesh.add(armR);
+
+            const legGeo = new THREE.BoxGeometry(0.24, 0.75, 0.24);
+            legL = new THREE.Mesh(legGeo, pantsMat);
+            legL.position.set(-0.2, 0.4, 0);
+            legL.castShadow = true;
+            runnerMesh.add(legL);
+
+            legR = new THREE.Mesh(legGeo, pantsMat);
+            legR.position.set(0.2, 0.4, 0);
+            legR.castShadow = true;
+            runnerMesh.add(legR);
+
+            const shoeGeo = new THREE.BoxGeometry(0.26, 0.15, 0.4);
+            const shoeL = new THREE.Mesh(shoeGeo, shoeMat);
+            shoeL.position.set(-0.2, 0.08, 0.08);
+            runnerMesh.add(shoeL);
+
+            const shoeR = new THREE.Mesh(shoeGeo, shoeMat);
+            shoeR.position.set(0.2, 0.08, 0.08);
+            runnerMesh.add(shoeR);
+
+            muscleGroup = new THREE.Group();
+
+            const pecsGeo = new THREE.BoxGeometry(0.38, 0.38, 0.28);
+            const pecL = new THREE.Mesh(pecsGeo, shirtMat);
+            pecL.position.set(-0.2, 1.35, 0.18);
+            muscleGroup.add(pecL);
+
+            const pecR = new THREE.Mesh(pecsGeo, shirtMat);
+            pecR.position.set(0.2, 1.35, 0.18);
+            muscleGroup.add(pecR);
+
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 2; col++) {
+                    const abGeo = new THREE.BoxGeometry(0.26, 0.13, 0.16);
+                    const ab = new THREE.Mesh(abGeo, absMat);
+                    ab.position.set((col === 0 ? -0.14 : 0.14), 0.82 + row * 0.15, 0.20);
+                    muscleGroup.add(ab);
+                }
+            }
+
+            const latsGeo = new THREE.BoxGeometry(0.35, 0.65, 0.3);
+            const latL = new THREE.Mesh(latsGeo, shirtMat);
+            latL.position.set(-0.38, 1.25, -0.12);
+            muscleGroup.add(latL);
+
+            const latR = new THREE.Mesh(latsGeo, shirtMat);
+            latR.position.set(0.38, 1.25, -0.12);
+            muscleGroup.add(latR);
+
+            const backMuscleGeo = new THREE.BoxGeometry(0.68, 0.72, 0.35);
+            const backMuscle = new THREE.Mesh(backMuscleGeo, shirtMat);
+            backMuscle.position.set(0, 1.25, -0.22);
+            backMuscle.castShadow = true;
+            muscleGroup.add(backMuscle);
+
+            const obliquesGeo = new THREE.BoxGeometry(0.2, 0.45, 0.28);
+            const oblL = new THREE.Mesh(obliquesGeo, absMat);
+            oblL.position.set(-0.36, 0.95, 0.08);
+            muscleGroup.add(oblL);
+
+            const oblR = new THREE.Mesh(obliquesGeo, absMat);
+            oblR.position.set(0.36, 0.95, 0.08);
+            muscleGroup.add(oblR);
+
+            const trapsGeo = new THREE.BoxGeometry(0.28, 0.25, 0.28);
+            const trapL = new THREE.Mesh(trapsGeo, shirtMat);
+            trapL.position.set(-0.22, 1.68, -0.02);
+            muscleGroup.add(trapL);
+
+            const trapR = new THREE.Mesh(trapsGeo, shirtMat);
+            trapR.position.set(0.22, 1.68, -0.02);
+            muscleGroup.add(trapR);
+
+            const shoulderGeo = new THREE.BoxGeometry(0.42, 0.42, 0.42);
+            const shoulderL = new THREE.Mesh(shoulderGeo, shirtMat);
+            shoulderL.position.set(-0.62, 1.4, 0);
+            muscleGroup.add(shoulderL);
+
+            const shoulderR = new THREE.Mesh(shoulderGeo, shirtMat);
+            shoulderR.position.set(0.62, 1.4, 0);
+            muscleGroup.add(shoulderR);
+
+            const bicepGeo = new THREE.BoxGeometry(0.32, 0.38, 0.32);
+            const bicepL = new THREE.Mesh(bicepGeo, skinMat);
+            bicepL.position.set(-0.65, 1.1, 0.08);
+            muscleGroup.add(bicepL);
+
+            const bicepR = new THREE.Mesh(bicepGeo, skinMat);
+            bicepR.position.set(0.65, 1.1, 0.08);
+            muscleGroup.add(bicepR);
+
+            const quadGeo = new THREE.BoxGeometry(0.35, 0.45, 0.32);
+            const quadL = new THREE.Mesh(quadGeo, pantsMat);
+            quadL.position.set(-0.22, 0.48, 0.08);
+            muscleGroup.add(quadL);
+
+            const quadR = new THREE.Mesh(quadGeo, pantsMat);
+            quadR.position.set(0.22, 0.48, 0.08);
+            muscleGroup.add(quadR);
+
+            muscleGroup.visible = false;
+            runnerMesh.add(muscleGroup);
+
+            playerGroup.add(runnerMesh);
+
+            const boardGeo = new THREE.BoxGeometry(0.9, 0.1, 2.2);
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x0891b2, roughness: 0.2 });
+            hoverboardMesh = new THREE.Mesh(boardGeo, boardMat);
+            hoverboardMesh.position.set(0, 0.1, 0);
+            hoverboardMesh.visible = false;
+            playerGroup.add(hoverboardMesh);
+
+            const shieldGeo = new THREE.SphereGeometry(1.4, 16, 16);
+            const shieldMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.35, wireframe: true });
+            shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+            shieldMesh.position.y = 1.0;
+            shieldMesh.visible = false;
+            playerGroup.add(shieldMesh);
+
+            scene.add(playerGroup);
+        }
+
+        /* --- ENVIRONMENT & TRACK BUILDER --- */
+        function createTrackChunk(zPos) {
+            const chunk = new THREE.Group();
+            chunk.position.z = zPos;
+
+            const groundGeo = new THREE.BoxGeometry(11, 0.4, 20);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.position.set(0, -0.2, 10);
+            ground.receiveShadow = true;
+            chunk.add(ground);
+
+            const wallGeo = new THREE.BoxGeometry(1, 6, 20);
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+
+            const wallLeft = new THREE.Mesh(wallGeo, wallMat);
+            wallLeft.position.set(-5.8, 2.8, 10);
+            chunk.add(wallLeft);
+
+            const wallRight = new THREE.Mesh(wallGeo, wallMat);
+            wallRight.position.set(5.8, 2.8, 10);
+            chunk.add(wallRight);
+
+            const tieGeo = new THREE.BoxGeometry(8, 0.12, 0.4);
+            const tieMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
+
+            const railGeo = new THREE.BoxGeometry(0.12, 0.15, 20);
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
+
+            LANES.forEach(x => {
+                const rail1 = new THREE.Mesh(railGeo, railMat);
+                rail1.position.set(x - 0.6, 0.05, 10);
+                chunk.add(rail1);
+
+                const rail2 = new THREE.Mesh(railGeo, railMat);
+                rail2.position.set(x + 0.6, 0.05, 10);
+                chunk.add(rail2);
+            });
+
+            for (let i = 0; i < 20; i += 2) {
+                const tie = new THREE.Mesh(tieGeo, tieMat);
+                tie.position.set(0, 0.02, i + 1);
+                chunk.add(tie);
+            }
+
+            scene.add(chunk);
+            return chunk;
+        }
+
+        function buildInitialTracks() {
+            for (let i = 0; i < 20; i++) {
+                const chunk = createTrackChunk(i * 20 - 100);
+                trackChunks.push(chunk);
+            }
+        }
+
+        /* --- OBSTACLE & COLLECTIBLE GENERATOR --- */
+        function spawnWorldObjects() {
+            if (nextSpawnZ - playerZ > 140) return;
+
+            const pattern = Math.random();
+            let totalSectionLength = 25;
+
+            const lanes = [0, 1, 2].sort(() => Math.random() - 0.5);
+
+            if (pattern < 0.25) {
+                createBarrier(LANES[lanes[0]], nextSpawnZ, false);
+                createBarrier(LANES[lanes[1]], nextSpawnZ, true);
+                createTrain(LANES[lanes[2]], nextSpawnZ + 36, false);
+                totalSectionLength = TRAIN_LENGTH + 36;
+            } else if (pattern < 0.50) {
+                createTrain(LANES[lanes[0]], nextSpawnZ + 12, false);
+                createTrain(LANES[lanes[1]], nextSpawnZ + 12, false);
+                createBarrier(LANES[lanes[2]], nextSpawnZ, false);
+                totalSectionLength = TRAIN_LENGTH + 20;
+            } else if (pattern < 0.75) {
+                spawnTrainConsist(LANES[lanes[0]], nextSpawnZ, 2, true);
+                createBarrier(LANES[lanes[1]], nextSpawnZ + 4, false);
+                createBarrier(LANES[lanes[2]], nextSpawnZ + 32, true);
+                totalSectionLength = 2 * TRAIN_LENGTH + 20;
+            } else {
+                createBarrier(LANES[lanes[0]], nextSpawnZ, false);
+                createBarrier(LANES[lanes[1]], nextSpawnZ + 18, true);
+                createTrain(LANES[lanes[2]], nextSpawnZ + 38, false);
+                totalSectionLength = TRAIN_LENGTH + 40;
+            }
+
+            const extraGap = 14; 
+            nextSpawnZ += totalSectionLength + extraGap;
+        }
+
+        function spawnTrainConsist(x, startZ, count, leadHasRamp) {
+            for (let i = 0; i < count; i++) {
+                const trainZ = startZ + i * TRAIN_LENGTH;
+                const hasRamp = (i === 0) ? leadHasRamp : false;
+                createTrain(x, trainZ, hasRamp);
+            }
+
+            const trainHeight = 3.6;
+            const totalLength = count * TRAIN_LENGTH;
+            const speedFactor = gameSpeed / BASE_SPEED;
+            const spacing = 2.0 * speedFactor;
+
+            if (leadHasRamp) {
+                const coinStartZ = startZ - TRAIN_LENGTH / 2 + 2;
+                const numCoins = Math.floor((totalLength - 4) / spacing);
+                spawnCoinLine(x, coinStartZ, numCoins, trainHeight + 0.6);
+            } else {
+                const coinStartZ = startZ - TRAIN_LENGTH / 2 + 1.5;
+                const numCoins = Math.floor((totalLength - 3) / spacing);
+                spawnCoinLine(x, coinStartZ, numCoins, trainHeight + 0.6);
+            }
+        }
+
+        function createTrain(x, z, hasRamp = false) {
+            const trainGroup = new THREE.Group();
+            trainGroup.position.set(x, 0, z);
+
+            const trainLength = TRAIN_LENGTH;
+            const trainHeight = 3.6;
+
+            const bodyGeo = new THREE.BoxGeometry(2.3, trainHeight, trainLength);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.2 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = trainHeight / 2;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            trainGroup.add(body);
+
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 0.8 });
+
+            const frontGlassGeo = new THREE.BoxGeometry(2.1, 1.0, 0.1);
+            const frontGlass = new THREE.Mesh(frontGlassGeo, glassMat);
+            frontGlass.position.set(0, trainHeight - 0.8, -trainLength / 2 - 0.01);
+            trainGroup.add(frontGlass);
+
+            const rearGlassGeo = new THREE.BoxGeometry(2.1, 1.0, 0.1);
+            const rearGlass = new THREE.Mesh(rearGlassGeo, glassMat);
+            rearGlass.position.set(0, trainHeight - 0.8, trainLength / 2 + 0.01);
+            trainGroup.add(rearGlass);
+
+            const lightGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            
+            const lightL = new THREE.Mesh(lightGeo, headLightMat);
+            lightL.rotation.x = Math.PI / 2;
+            lightL.position.set(-0.7, 0.8, -trainLength / 2 - 0.05);
+            trainGroup.add(lightL);
+
+            const lightR = lightL.clone();
+            lightR.position.x = 0.7;
+            trainGroup.add(lightR);
+
+            const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const tailL = new THREE.Mesh(lightGeo, tailLightMat);
+            tailL.rotation.x = Math.PI / 2;
+            tailL.position.set(-0.7, 0.8, trainLength / 2 + 0.05);
+            trainGroup.add(tailL);
+
+            const tailR = tailL.clone();
+            tailR.position.x = 0.7;
+            trainGroup.add(tailR);
+
+            const sideWindowGeo = new THREE.BoxGeometry(0.08, 0.9, 1.6);
+            const numSideWindows = 5;
+            const windowSpacing = (trainLength - 4) / (numSideWindows - 1);
+            const startWindowZ = - (trainLength - 4) / 2;
+
+            for (let i = 0; i < numSideWindows; i++) {
+                const wz = startWindowZ + i * windowSpacing;
+                const sideWinL = new THREE.Mesh(sideWindowGeo, glassMat);
+                sideWinL.position.set(-1.16, trainHeight - 0.9, wz);
+                trainGroup.add(sideWinL);
+
+                const sideWinR = new THREE.Mesh(sideWindowGeo, glassMat);
+                sideWinR.position.set(1.16, trainHeight - 0.9, wz);
+                trainGroup.add(sideWinR);
+            }
+
+            const stripeGeo = new THREE.BoxGeometry(2.32, 0.3, trainLength + 0.02);
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+            stripe.position.y = 1.2;
+            trainGroup.add(stripe);
+
+            const rampLength = 7.0;
+            if (hasRamp) {
+                const rampGeo = new THREE.BoxGeometry(2.2, 0.2, rampLength);
+                const rampMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.8 });
+                const ramp = new THREE.Mesh(rampGeo, rampMat);
+                ramp.position.set(0, trainHeight / 2, -trainLength / 2 - rampLength / 2);
+                ramp.rotation.x = -Math.atan2(trainHeight, rampLength);
+                trainGroup.add(ramp);
+
+                for (let i = 0; i < 4; i++) {
+                    const ratio = (i + 0.5) / 4;
+                    const coinZ = -trainLength / 2 - rampLength * (1 - ratio);
+                    const coinY = trainHeight * ratio + 0.6;
+                    createCoin(x, coinY, z + coinZ);
+                }
+            }
+
+            const minX = Math.min(x - 1.15, x + 1.15);
+            const maxX = Math.max(x - 1.15, x + 1.15);
+
+            trainGroup.userData = { 
+                type: 'train',
+                hasRamp: hasRamp,
+                rampLength: rampLength,
+                bounds: { 
+                    minX: minX, 
+                    maxX: maxX, 
+                    minZ: z - trainLength / 2 - (hasRamp ? rampLength : 0) - 0.6, 
+                    maxZ: z + trainLength / 2 + 0.6, 
+                    trainFrontZ: z - trainLength / 2,
+                    topY: trainHeight 
+                } 
+            };
+
+            scene.add(trainGroup);
+            obstacles.push(trainGroup);
+        }
+
+        function createBarrier(x, z, isHigh) {
+            const group = new THREE.Group();
+            group.position.set(x, 0, z);
+
+            const barMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+
+            const minX = Math.min(x - 1.1, x + 1.1);
+            const maxX = Math.max(x - 1.1, x + 1.1);
+
+            if (!isHigh) {
+                const barGeo = new THREE.BoxGeometry(2.3, 0.25, 0.2);
+                const bar = new THREE.Mesh(barGeo, barMat);
+                bar.position.y = 0.8;
+                group.add(bar);
+
+                const legGeo = new THREE.BoxGeometry(0.15, 0.8, 0.15);
+                const legL = new THREE.Mesh(legGeo, stripeMat);
+                legL.position.set(-1.0, 0.4, 0);
+                group.add(legL);
+
+                const legR = legL.clone();
+                legR.position.x = 1.0;
+                group.add(legR);
+
+                spawnCoinArc(x, z, 0.0);
+
+                group.userData = { 
+                    type: 'low_hurdle', 
+                    bounds: { minX: minX, maxX: maxX, minZ: z - 1.2, maxZ: z + 1.2, maxY: 1.2 } 
+                };
+            } else {
+                const topBarGeo = new THREE.BoxGeometry(2.3, 0.8, 0.2);
+                const topBar = new THREE.Mesh(topBarGeo, barMat);
+                topBar.position.y = 2.4;
+                group.add(topBar);
+
+                const poleGeo = new THREE.BoxGeometry(0.15, 2.8, 0.15);
+                const poleL = new THREE.Mesh(poleGeo, stripeMat);
+                poleL.position.set(-1.0, 1.4, 0);
+                group.add(poleL);
+
+                const poleR = poleL.clone();
+                poleR.position.x = 1.0;
+                group.add(poleR);
+
+                spawnCoinLine(x, z - 2.0, 3, 0.5);
+
+                group.userData = { 
+                    type: 'high_barrier', 
+                    bounds: { minX: minX, maxX: maxX, minZ: z - 0.5, maxZ: z + 0.5, minY: 1.4, maxY: 3.0 } 
+                };
+            }
+
+            scene.add(group);
+            obstacles.push(group);
+        }
+
+        /* --- COLLECTIBLES & POWERUPS --- */
+        function createCoin(x, y, z) {
+            const coinGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.08, 16);
+            const coinMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8, roughness: 0.2 });
+            const coin = new THREE.Mesh(coinGeo, coinMat);
+            coin.rotation.x = Math.PI / 2;
+            coin.position.set(x, y, z);
+            coin.castShadow = true;
+
+            coin.userData = { type: 'coin', z: z, x: x, y: y };
+            scene.add(coin);
+            collectibles.push(coin);
+        }
+
+        function spawnCoinLine(x, startZ, count, height = 0.6) {
+            const speedFactor = gameSpeed / BASE_SPEED;
+            const spacing = 2.0 * speedFactor;
+            const spawnPowerup = (Math.random() < 0.06);
+
+            for (let i = 0; i < count; i++) {
+                const coinZ = startZ + i * spacing;
+                if (i === count - 1 && spawnPowerup) {
+                    const types = ['magnet', '2x', 'hoverboard', 'bonus', 'hurdle_breaker'];
+                    const pType = types[Math.floor(Math.random() * types.length)];
+                    createPowerupItem(x, coinZ, pType, height);
+                } else {
+                    createCoin(x, height, coinZ);
+                }
+            }
+        }
+
+        function spawnCoinArc(x, centerZ, groundY = 0.0) {
+            const count = 6;
+            const tStart = 4;
+            const tEnd = 28;
+            const spawnPowerup = (Math.random() < 0.10);
+
+            for (let i = 0; i < count; i++) {
+                const t = tStart + (i / (count - 1)) * (tEnd - tStart);
+                const zOffset = (t - 16) * gameSpeed;
+                const y = groundY + (0.24 * t - 0.0075 * t * t) + 0.55;
+                const coinZ = centerZ + zOffset;
+
+                if (i === count - 1 && spawnPowerup) {
+                    const types = ['magnet', '2x', 'hoverboard', 'bonus', 'hurdle_breaker'];
+                    const pType = types[Math.floor(Math.random() * types.length)];
+                    createPowerupItem(x, coinZ, pType, y);
+                } else {
+                    createCoin(x, y, coinZ);
+                }
+            }
+        }
+
+        function createPowerupItem(x, z, type, customY = 0.6) {
+            const group = new THREE.Group();
+            group.position.set(x, customY, z);
+
+            let matColor = 0xffffff;
+            if (type === 'magnet') matColor = 0xef4444;
+            if (type === '2x') matColor = 0xeab308;
+            if (type === 'hoverboard') matColor = 0x06b6d4;
+            if (type === 'bonus') matColor = 0xec4899;
+            if (type === 'hurdle_breaker') matColor = 0x22c55e;
+
+            const iconGeo = new THREE.SphereGeometry(0.45, 16, 16);
+            const iconMat = new THREE.MeshStandardMaterial({ 
+                color: matColor, 
+                roughness: 0.2, 
+                emissive: matColor, 
+                emissiveIntensity: 0.4 
+            });
+            const mesh = new THREE.Mesh(iconGeo, iconMat);
+            group.add(mesh);
+
+            if (type === 'bonus' || type === 'hurdle_breaker') {
+                const ringGeo = new THREE.TorusGeometry(0.65, 0.08, 8, 24);
+                const ringMat = new THREE.MeshBasicMaterial({ color: matColor, wireframe: true });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = Math.PI / 2;
+                group.add(ring);
+            }
+
+            group.userData = { type: type, z: z, x: x };
+            scene.add(group);
+            powerups.push(group);
+        }
+
+        /* --- CONTROLS & INPUT SYSTEM (iPad/Mobile Optimized) --- */
+        function setupControls() {
+            // iOS Safari のバウンス/スクロールを強力に防止
+            document.addEventListener('touchmove', function(e) {
+                if (isPlaying) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' || e.code === 'Escape') {
+                    e.preventDefault();
+                    returnToTitle();
+                    return;
+                }
+
+                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
+                const rankingModal = document.getElementById('ranking-modal');
+                const changeModal = document.getElementById('change-player-modal');
+                const isRankingOpen = rankingModal && !rankingModal.classList.contains('hidden');
+                const isChangeOpen = changeModal && !changeModal.classList.contains('hidden');
+
+                if (isRankingOpen || isChangeOpen) return;
+
+                if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!isPlaying) {
+                        handleStartGame(e);
+                        return;
+                    } else if (e.key === ' ' || e.code === 'Space') {
+                        jump();
+                        return;
+                    }
+                }
+
+                if (!isPlaying) return;
+
+                switch (e.key) {
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        moveLane(-1);
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        moveLane(1);
+                        break;
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        jump();
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        slide();
+                        break;
+                }
+            });
+
+            // タッチ / スワイプ操作（iPad画面全体でスムーズに判定）
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchHandled = false;
+
+            window.addEventListener('touchstart', (e) => {
+                try { soundFX.init(); } catch(err){}
+                if (e.touches.length > 0) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    touchHandled = false;
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isPlaying || touchHandled || e.touches.length === 0) return;
+
+                const dx = e.touches[0].clientX - touchStartX;
+                const dy = e.touches[0].clientY - touchStartY;
+                const minSwipe = 25; // iPad用に少し低めの感度に調整
+
+                if (Math.abs(dx) > minSwipe || Math.abs(dy) > minSwipe) {
+                    touchHandled = true;
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        if (dx > 0) moveLane(1);
+                        else moveLane(-1);
+                    } else {
+                        if (dy < 0) jump();
+                        else slide();
+                    }
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchend', (e) => {
+                if (!isPlaying || touchHandled) return;
+                if (e.changedTouches.length === 0) return;
+
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                const minSwipe = 25;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (Math.abs(dx) > minSwipe) {
+                        if (dx > 0) moveLane(1);
+                        else moveLane(-1);
+                    }
+                } else {
+                    if (Math.abs(dy) > minSwipe) {
+                        if (dy < 0) jump();
+                        else slide();
+                    }
+                }
+            }, { passive: true });
+
+            // タッチボタン操作
+            const btnL = document.getElementById('btn-left');
+            const btnR = document.getElementById('btn-right');
+            const btnU = document.getElementById('btn-up');
+            const btnD = document.getElementById('btn-down');
+
+            const bindBtn = (el, action) => {
+                if (!el) return;
+                const trigger = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    soundFX.init();
+                    action();
+                };
+                el.addEventListener('touchstart', trigger, { passive: false });
+                el.addEventListener('click', trigger);
+            };
+
+            bindBtn(btnL, () => moveLane(-1));
+            bindBtn(btnR, () => moveLane(1));
+            bindBtn(btnU, () => jump());
+            bindBtn(btnD, () => slide());
+
+            const titleBtn = document.getElementById('title-btn');
+            if (titleBtn) {
+                titleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    returnToTitle();
+                });
+            }
+
+            const quitBtn = document.getElementById('quit-btn');
+            if (quitBtn) {
+                quitBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    triggerQuitProcess();
+                });
+            }
+
+            const resultQuitBtn = document.getElementById('result-quit-btn');
+            if (resultQuitBtn) {
+                resultQuitBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    triggerQuitProcess();
+                });
+            }
+
+            const rankingModal = document.getElementById('ranking-modal');
+            const rankingBtn = document.getElementById('ranking-btn');
+            const resultRankingBtn = document.getElementById('result-ranking-btn');
+            const closeRankingBtn = document.getElementById('close-ranking-btn');
+
+            if (rankingBtn) {
+                rankingBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateRankingModal();
+                    if (rankingModal) rankingModal.classList.remove('hidden');
+                });
+            }
+            if (resultRankingBtn) {
+                resultRankingBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateRankingModal();
+                    if (rankingModal) rankingModal.classList.remove('hidden');
+                });
+            }
+            if (closeRankingBtn) {
+                closeRankingBtn.addEventListener('click', () => {
+                    if (rankingModal) rankingModal.classList.add('hidden');
+                });
+            }
+
+            const saveNameBtn = document.getElementById('save-name-btn');
+            if (saveNameBtn) {
+                saveNameBtn.addEventListener('click', () => {
+                    const inputVal = document.getElementById('player-name-input').value.trim();
+                    if (!inputVal) {
+                        alert("名前を入力してください！");
+                        return;
+                    }
+                    if (containsNgWord(inputVal)) {
+                        alert("その名前には使用できない単語（NGワード）が含まれています。");
+                        return;
+                    }
+                    if (isNameTaken(inputVal, lastSavedRecordId)) {
+                        alert("「" + inputVal + "」はすでにお使いの人がいます。\n別の名前を入力してください。");
+                        return;
+                    }
+
+                    const newName = setCurrentPlayerName(inputVal);
+                    document.getElementById('player-name-input').value = newName;
+                    document.getElementById('result-name-input').value = newName;
+
+                    let msg = "名前を「" + newName + "」に設定しました！";
+
+                    if (score > 0) {
+                        const res = saveScoreToRanking(newName, score);
+                        lastSavedRecordId = res.recordId;
+                        if (res.isNewRecord) {
+                            const badge = document.getElementById('new-highscore-badge');
+                            if (badge) badge.classList.remove('hidden');
+                        }
+                        msg += "\n（今回のスコアをランキングに登録しました！）";
+                    } else if (lastSavedRecordId) {
+                        updateRecordName(lastSavedRecordId, newName);
+                        msg += "\n（最新の記録にも反映されました）";
+                    }
+
+                    updateRankingModal();
+                    alert(msg);
+                });
+            }
+
+            const resultSaveBtn = document.getElementById('result-save-name-btn');
+            if (resultSaveBtn) {
+                resultSaveBtn.addEventListener('click', () => {
+                    const inputVal = document.getElementById('result-name-input').value.trim();
+                    if (!inputVal) {
+                        alert("名前を入力してください！");
+                        return;
+                    }
+                    if (containsNgWord(inputVal)) {
+                        alert("その名前には使用できない単語（NGワード）が含まれています。");
+                        return;
+                    }
+                    if (isNameTaken(inputVal, lastSavedRecordId)) {
+                        alert("「" + inputVal + "」はすでにお使いの人がいます。\n別の名前を入力してください。");
+                        return;
+                    }
+
+                    const newName = setCurrentPlayerName(inputVal);
+                    document.getElementById('player-name-input').value = newName;
+                    document.getElementById('result-name-input').value = newName;
+
+                    if (score > 0) {
+                        const res = saveScoreToRanking(newName, score);
+                        lastSavedRecordId = res.recordId;
+                        if (res.isNewRecord) {
+                            const badge = document.getElementById('new-highscore-badge');
+                            if (badge) badge.classList.remove('hidden');
+                        }
+                    }
+
+                    updateRankingModal();
+                    alert("「" + newName + "」さんでランキングに保存しました！");
+                });
+            }
+
+            const soundToggle = document.getElementById('sound-toggle');
+            if (soundToggle) {
+                soundToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    soundFX.enabled = !soundFX.enabled;
+                    const statusEl = document.getElementById('sound-status');
+                    if (statusEl) {
+                        statusEl.innerText = soundFX.enabled ? 'ON' : 'OFF';
+                        statusEl.className = soundFX.enabled ? 'text-emerald-400' : 'text-rose-500';
+                    }
+                });
+            }
+        }
+
+        /* --- PLAYER ACTIONS --- */
+        function moveLane(dir) {
+            const newLane = currentLane + dir;
+            if (newLane >= 0 && newLane < LANE_COUNT) {
+                currentLane = newLane;
+                targetX = LANES[currentLane];
+            }
+        }
+
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                jumpVelocity = JUMP_STRENGTH;
+                soundFX.playJump();
+            }
+        }
+
+        function slide() {
+            if (!isSliding) {
+                isSliding = true;
+                slideTimer = SLIDE_DURATION;
+                if (isJumping) {
+                    jumpVelocity = -0.35;
+                }
+                soundFX.playSlide();
+            }
+        }
+
+        function activateHoverboard() {
+            isHoverboardActive = true;
+            hoverboardTime = 600; 
+            if (hoverboardMesh) hoverboardMesh.visible = true;
+            if (shieldMesh) shieldMesh.visible = true;
+            updateHUD();
+            soundFX.playHoverboard();
+        }
+
+        function addBonusGauge(amount) {
+            if (is5xFeverActive) return;
+            bonusGauge = Math.min(MAX_BONUS_GAUGE, bonusGauge + amount);
+            if (bonusGauge >= MAX_BONUS_GAUGE) {
+                is5xFeverActive = true;
+                feverTime = FEVER_DURATION;
+                soundFX.playPowerup();
+            }
+        }
+
+        /* --- GAME LOOP & RESET --- */
+        function startGame() {
+            try {
+                isPlaying = false;
+
+                try {
+                    soundFX.init();
+                } catch(err) {}
+
+                cleanupTitleScene();
+
+                if (playerGroup) {
+                    playerGroup.position.set(LANES[1], 0, 0);
+                    playerGroup.visible = true;
+                }
+                if (runnerMesh) {
+                    runnerMesh.position.set(0, 0, 0);
+                    runnerMesh.rotation.set(0, 0, 0);
+                    runnerMesh.scale.set(1, 1, 1);
+                }
+                if (torsoMesh) torsoMesh.scale.set(1, 1, 1);
+                if (armL) { armL.scale.set(1, 1, 1); armL.position.set(-0.48, 1.15, 0); armL.rotation.set(0,0,0); }
+                if (armR) { armR.scale.set(1, 1, 1); armR.position.set(0.48, 1.15, 0); armR.rotation.set(0,0,0); }
+                if (legL) { legL.scale.set(1, 1, 1); legL.rotation.set(0,0,0); }
+                if (legR) { legR.scale.set(1, 1, 1); legR.rotation.set(0,0,0); }
+                if (muscleGroup) muscleGroup.visible = false;
+
+                if (hoverboardMesh) hoverboardMesh.visible = false;
+                if (shieldMesh) shieldMesh.visible = false;
+
+                score = 0;
+                scoreAccumulator = 0;
+                lastFrameTime = performance.now();
+                coins = 0;
+                multiplier = 1;
+                gameSpeed = BASE_SPEED;
+                currentLane = 1;
+                targetX = LANES[1];
+                playerY = 0;
+                playerZ = 0;
+                currentGroundY = 0;
+
+                isJumping = false;
+                isSliding = false;
+                isHoverboardActive = false;
+                isMagnetActive = false;
+                is2xActive = false;
+
+                isHurdleBreakerActive = false;
+                hurdleBreakerTime = 0;
+
+                bonusGauge = 0;
+                is5xFeverActive = false;
+                feverTime = 0;
+
+                invulnerableTime = 0;
+
+                for (let i = 0; i < trackChunks.length; i++) {
+                    if (trackChunks[i]) trackChunks[i].position.z = i * 20 - 20;
+                }
+
+                obstacles.forEach(o => disposeObject(o));
+                flyingObstacles.forEach(fo => disposeObject(fo));
+                collectibles.forEach(c => disposeObject(c));
+                powerups.forEach(p => disposeObject(p));
+                particles.forEach(pt => disposeObject(pt));
+
+                obstacles.length = 0;
+                flyingObstacles.length = 0;
+                collectibles.length = 0;
+                powerups.length = 0;
+                particles.length = 0;
+
+                nextSpawnZ = 40;
+
+                camera.position.set(0, 6.5, -8.5);
+                camera.lookAt(0, 1.5, 12);
+
+                const startScreen = document.getElementById('start-screen');
+                const gameOverScreen = document.getElementById('gameover-screen');
+                const topHud = document.getElementById('top-hud');
+
+                if (startScreen) startScreen.classList.add('hidden');
+                if (gameOverScreen) gameOverScreen.classList.add('hidden');
+                if (topHud) topHud.classList.remove('opacity-0');
+                
+                isPlaying = true;
+            } catch (e) {
+                console.error("Game start error:", e);
+                isPlaying = true;
+                const startScreen = document.getElementById('start-screen');
+                if (startScreen) startScreen.classList.add('hidden');
+            }
+        }
+
+        /* --- PHYSICS & GROUND HEIGHT UPDATE --- */
+        function updatePlayerPhysics(deltaTime) {
+            if (!playerGroup || !runnerMesh) return;
+
+            playerGroup.position.x += (targetX - playerGroup.position.x) * 0.35;
+
+            const tilt = (targetX - playerGroup.position.x) * 0.12;
+            runnerMesh.rotation.z = tilt;
+
+            playerZ += gameSpeed;
+            playerGroup.position.z = playerZ;
+
+            gameSpeed += 0.00016;
+
+            currentGroundY = 0;
+            const px = playerGroup.position.x;
+            const pz = playerZ;
+
+            for (let i = 0; i < obstacles.length; i++) {
+                const obs = obstacles[i];
+                if (obs.userData.type === 'train') {
+                    const b = obs.userData.bounds;
+                    const hasRamp = obs.userData.hasRamp;
+                    const rampLength = obs.userData.rampLength || 7.0;
+                    const trainFrontZ = b.trainFrontZ;
+                    const trainRearZ = b.maxZ - 0.6;
+
+                    if (px >= b.minX - 0.3 && px <= b.maxX + 0.3) {
+                        if (hasRamp) {
+                            const rampStart = trainFrontZ - rampLength;
+                            if (pz >= rampStart && pz < trainFrontZ) {
+                                const ratio = (pz - rampStart) / rampLength;
+                                const rampHeight = ratio * b.topY;
+                                if (rampHeight > currentGroundY) {
+                                    currentGroundY = rampHeight;
+                                }
+                            } else if (pz >= trainFrontZ && pz <= trainRearZ + 0.5) {
+                                if (playerY >= b.topY - 1.0 || currentGroundY >= b.topY - 1.0) {
+                                    if (b.topY > currentGroundY) {
+                                        currentGroundY = b.topY;
+                                    }
+                                }
+                            }
+                        } else {
+                            if (pz >= trainFrontZ - 0.3 && pz <= trainRearZ + 0.5) {
+                                if (playerY >= b.topY - 0.4 || currentGroundY >= b.topY - 0.4) {
+                                    if (b.topY > currentGroundY) {
+                                        currentGroundY = b.topY;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (isJumping) {
+                playerY += jumpVelocity;
+                jumpVelocity -= GRAVITY;
+
+                if (playerY <= currentGroundY) {
+                    playerY = currentGroundY;
+                    isJumping = false;
+                }
+            } else {
+                if (playerY > currentGroundY) {
+                    isJumping = true;
+                    jumpVelocity = 0;
+                } else {
+                    playerY = currentGroundY;
+                }
+            }
+
+            playerGroup.position.y = playerY;
+
+            if (isSliding) {
+                slideTimer--;
+                runnerMesh.rotation.x = -Math.PI / 2.5;
+                runnerMesh.position.y = 0.3;
+                if (slideTimer <= 0) {
+                    isSliding = false;
+                    runnerMesh.rotation.x = 0;
+                    runnerMesh.position.y = 0;
+                }
+            } else {
+                runnerMesh.rotation.x = 0;
+                runnerMesh.position.y = 0;
+            }
+
+            if (!isJumping && !isSliding) {
+                const time = Date.now() * 0.015 * (gameSpeed / BASE_SPEED);
+                if (legL) legL.rotation.x = Math.sin(time) * 0.8;
+                if (legR) legR.rotation.x = -Math.sin(time) * 0.8;
+                if (armL) armL.rotation.x = -Math.sin(time) * 0.8;
+                if (armR) armR.rotation.x = Math.sin(time) * 0.8;
+            } else if (isJumping) {
+                if (legL) legL.rotation.x = -0.5;
+                if (legR) legR.rotation.x = 0.5;
+                if (armL) armL.rotation.x = -1.0;
+                if (armR) armR.rotation.x = -1.0;
+            }
+
+            // クラッシャー演出
+            if (isHurdleBreakerActive) {
+                if (muscleGroup) muscleGroup.visible = true;
+
+                runnerMesh.scale.x += (1.45 - runnerMesh.scale.x) * 0.15;
+                runnerMesh.scale.y += (1.48 - runnerMesh.scale.y) * 0.15;
+                runnerMesh.scale.z += (1.35 - runnerMesh.scale.z) * 0.15;
+
+                if (torsoMesh) {
+                    torsoMesh.scale.x += (1.40 - torsoMesh.scale.x) * 0.15; 
+                    torsoMesh.scale.y += (1.05 - torsoMesh.scale.y) * 0.15; 
+                    torsoMesh.scale.z += (1.25 - torsoMesh.scale.z) * 0.15; 
+                }
+                if (armL) {
+                    armL.scale.x += (1.5 - armL.scale.x) * 0.15;
+                    armL.scale.y += (1.0 - armL.scale.y) * 0.15;
+                    armL.scale.z += (1.5 - armL.scale.z) * 0.15;
+                    armL.position.x += (-0.68 - armL.position.x) * 0.15;
+                }
+                if (armR) {
+                    armR.scale.x += (1.5 - armR.scale.x) * 0.15;
+                    armR.scale.y += (1.0 - armR.scale.y) * 0.15;
+                    armR.scale.z += (1.5 - armR.scale.z) * 0.15;
+                    armR.position.x += (0.68 - armR.position.x) * 0.15;
+                }
+                if (legL && legR) {
+                    legL.scale.x += (1.3 - legL.scale.x) * 0.15;
+                    legL.scale.y += (1.0 - legL.scale.y) * 0.15;
+                    legL.scale.z += (1.3 - legL.scale.z) * 0.15;
+                    legR.scale.x += (1.3 - legR.scale.x) * 0.15;
+                    legR.scale.y += (1.0 - legR.scale.y) * 0.15;
+                    legR.scale.z += (1.3 - legR.scale.z) * 0.15;
+                }
+            } else {
+                if (muscleGroup) muscleGroup.visible = false;
+
+                runnerMesh.scale.x += (1.0 - runnerMesh.scale.x) * 0.15;
+                runnerMesh.scale.y += (1.0 - runnerMesh.scale.y) * 0.15;
+                runnerMesh.scale.z += (1.0 - runnerMesh.scale.z) * 0.15;
+
+                if (torsoMesh) {
+                    torsoMesh.scale.x += (1.0 - torsoMesh.scale.x) * 0.15;
+                    torsoMesh.scale.y += (1.0 - torsoMesh.scale.y) * 0.15;
+                    torsoMesh.scale.z += (1.0 - torsoMesh.scale.z) * 0.15;
+                }
+                if (armL) {
+                    armL.scale.x += (1.0 - armL.scale.x) * 0.15;
+                    armL.scale.z += (1.0 - armL.scale.z) * 0.15;
+                    armL.position.x += (-0.48 - armL.position.x) * 0.15;
+                }
+                if (armR) {
+                    armR.scale.x += (1.0 - armR.scale.x) * 0.15;
+                    armR.scale.z += (1.0 - armR.scale.z) * 0.15;
+                    armR.position.x += (0.48 - armR.position.x) * 0.15;
+                }
+                if (legL && legR) {
+                    legL.scale.x += (1.0 - legL.scale.x) * 0.15;
+                    legL.scale.z += (1.0 - legL.scale.z) * 0.15;
+                    legR.scale.x += (1.0 - legR.scale.x) * 0.15;
+                    legR.scale.z += (1.0 - legR.scale.z) * 0.15;
+                }
+            }
+
+            if (isHoverboardActive) {
+                hoverboardTime--;
+                if (hoverboardMesh) hoverboardMesh.rotation.y += 0.05;
+                if (hoverboardTime <= 0) {
+                    isHoverboardActive = false;
+                    if (hoverboardMesh) hoverboardMesh.visible = false;
+                    if (shieldMesh) shieldMesh.visible = false;
+                }
+            }
+
+            if (isMagnetActive) {
+                magnetTime--;
+                if (magnetTime <= 0) isMagnetActive = false;
+            }
+
+            if (is2xActive) {
+                twoXTime--;
+                if (twoXTime <= 0) is2xActive = false;
+            }
+
+            if (isHurdleBreakerActive) {
+                hurdleBreakerTime--;
+                if (hurdleBreakerTime <= 0) isHurdleBreakerActive = false;
+            }
+
+            if (is5xFeverActive) {
+                feverTime--;
+                bonusGauge = (feverTime / FEVER_DURATION) * 100;
+                if (feverTime <= 0) {
+                    is5xFeverActive = false;
+                    bonusGauge = 0;
+                }
+            }
+
+            if (invulnerableTime > 0) {
+                invulnerableTime--;
+                playerGroup.visible = Math.floor(invulnerableTime / 4) % 2 === 0;
+            } else if (isHurdleBreakerActive && hurdleBreakerTime <= 120) {
+                playerGroup.visible = Math.floor(hurdleBreakerTime / 6) % 2 === 0;
+            } else {
+                playerGroup.visible = true;
+            }
+
+            const currentMultiplier = (is2xActive ? 2 : 1) * (is5xFeverActive ? 10 : 1);
+            scoreAccumulator += (deltaTime / 0.002) * currentMultiplier;
+            if (scoreAccumulator >= 1) {
+                const addScore = Math.floor(scoreAccumulator);
+                score += addScore;
+                scoreAccumulator -= addScore;
+            }
+        }
+
+        /* --- HURDLE LAUNCH EFFECT --- */
+        function launchFlyingHurdle(obs) {
+            obs.userData.isFlying = true;
+            obs.userData.vy = 0.45;
+            obs.userData.vz = gameSpeed + 0.85;
+            obs.userData.vx = (Math.random() - 0.5) * 0.2;
+            obs.userData.rotX = (Math.random() - 0.5) * 0.4 + 0.3;
+            obs.userData.rotY = (Math.random() - 0.5) * 0.4;
+            obs.userData.rotZ = (Math.random() - 0.5) * 0.4;
+            flyingObstacles.push(obs);
+        }
+
+        function updateFlyingObstacles() {
+            for (let i = flyingObstacles.length - 1; i >= 0; i--) {
+                const obs = flyingObstacles[i];
+                obs.position.x += obs.userData.vx;
+                obs.position.y += obs.userData.vy;
+                obs.position.z += obs.userData.vz;
+                obs.userData.vy -= GRAVITY * 0.8;
+
+                obs.rotation.x += obs.userData.rotX;
+                obs.rotation.y += obs.userData.rotY;
+                obs.rotation.z += obs.userData.rotZ;
+
+                if (Math.random() < 0.3) {
+                    createExplosionParticles(obs.position);
+                }
+
+                if (obs.position.y < -5 || obs.position.z > playerZ + 120) {
+                    disposeObject(obs);
+                    flyingObstacles.splice(i, 1);
+                }
+            }
+        }
+
+        /* --- COLLISIONS & INTERACTIONS --- */
+        function checkCollisions() {
+            if (!playerGroup) return;
+            const playerX = playerGroup.position.x;
+            const playerYPos = playerY;
+            const pZ = playerZ;
+
+            if (invulnerableTime <= 0) {
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    const obs = obstacles[i];
+                    const b = obs.userData.bounds;
+
+                    if (Math.abs(pZ - obs.position.z) < 12.0) {
+                        if (playerX >= b.minX && playerX <= b.maxX) {
+                            let hit = false;
+
+                            if (obs.userData.type === 'train') {
+                                const trainFrontZ = b.trainFrontZ;
+                                const trainRearZ = b.maxZ - 0.6;
+                                const hasRamp = obs.userData.hasRamp;
+                                const rampLength = obs.userData.rampLength || 7.0;
+
+                                if (hasRamp) {
+                                    const rampStart = trainFrontZ - rampLength;
+                                    if (pZ >= rampStart - 0.5 && pZ < trainFrontZ) {
+                                        const ratio = Math.max(0, Math.min(1, (pZ - rampStart) / rampLength));
+                                        const rampY = ratio * b.topY;
+                                        if (playerYPos < rampY - 0.6) {
+                                            hit = true;
+                                        }
+                                    } else if (pZ >= trainFrontZ && pZ <= trainRearZ + 0.4) {
+                                        if (playerYPos < b.topY - 0.8) {
+                                            hit = true;
+                                        }
+                                    }
+                                } else {
+                                    if (pZ >= trainFrontZ - 0.4 && pZ <= trainRearZ + 0.4) {
+                                        if (playerYPos < b.topY - 0.2) {
+                                            hit = true;
+                                        }
+                                    }
+                                }
+                            } else if (obs.userData.type === 'low_hurdle') {
+                                if (pZ >= b.minZ && pZ <= b.maxZ) {
+                                    if (playerYPos < b.maxY) {
+                                        hit = true;
+                                    }
+                                }
+                            } else if (obs.userData.type === 'high_barrier') {
+                                if (pZ >= b.minZ && pZ <= b.maxZ) {
+                                    if (playerYPos < b.maxY && (!isSliding || playerYPos > 0.2)) {
+                                        hit = true;
+                                    }
+                                }
+                            }
+
+                            if (hit) {
+                                if (isHurdleBreakerActive && (obs.userData.type === 'low_hurdle' || obs.userData.type === 'high_barrier')) {
+                                    soundFX.playCrash();
+                                    createExplosionParticles(obs.position);
+                                    launchFlyingHurdle(obs);
+                                    obstacles.splice(i, 1);
+                                    score += 200;
+                                    continue;
+                                }
+
+                                if (isHoverboardActive) {
+                                    isHoverboardActive = false;
+                                    if (hoverboardMesh) hoverboardMesh.visible = false;
+                                    if (shieldMesh) shieldMesh.visible = false;
+                                    invulnerableTime = 60;
+                                    soundFX.playCrash();
+                                    createExplosionParticles(playerGroup.position);
+                                } else {
+                                    gameOver();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            const playerReachY = playerYPos + (isHurdleBreakerActive ? 1.35 : 0.8);
+            const reachDist = isHurdleBreakerActive ? 2.0 : 1.6;
+
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                const coin = collectibles[i];
+                coin.rotation.z += 0.05;
+
+                // マグネット効果
+                if (isMagnetActive) {
+                    const zDiff = coin.position.z - pZ;
+                    if (zDiff > -1.5 && zDiff < 22.0) {
+                        coin.position.x += (playerX - coin.position.x) * 0.3;
+                        coin.position.y += (playerReachY - coin.position.y) * 0.3;
+                        coin.position.z += (pZ - coin.position.z) * 0.35;
+                    }
+                }
+
+                const dist = Math.hypot(playerX - coin.position.x, playerReachY - coin.position.y, pZ - coin.position.z);
+                const activeReachDist = isMagnetActive ? 2.2 : reachDist;
+
+                if (dist < activeReachDist) {
+                    coins++;
+                    addBonusGauge(0.2);
+                    const currentMultiplier = (is2xActive ? 2 : 1) * (is5xFeverActive ? 10 : 1);
+                    score += 100 * currentMultiplier;
+                    soundFX.playCoin();
+                    disposeObject(coin);
+                    collectibles.splice(i, 1);
+                }
+            }
+
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                const p = powerups[i];
+                p.rotation.y += 0.04;
+
+                const dist = Math.hypot(playerX - p.position.x, playerReachY - p.position.y, pZ - p.position.z);
+
+                if (dist < reachDist) {
+                    const type = p.userData.type;
+                    soundFX.playPowerup();
+
+                    if (type === 'magnet') {
+                        isMagnetActive = true;
+                        magnetTime = 500;
+                    } else if (type === '2x') {
+                        is2xActive = true;
+                        twoXTime = 500;
+                    } else if (type === 'hoverboard') {
+                        activateHoverboard();
+                    } else if (type === 'bonus') {
+                        addBonusGauge(30);
+                    } else if (type === 'hurdle_breaker') {
+                        isHurdleBreakerActive = true;
+                        hurdleBreakerTime = 500;
+                    }
+
+                    disposeObject(p);
+                    powerups.splice(i, 1);
+                }
+            }
+        }
+
+        /* --- PARTICLE EFFECTS & MEMORY DISPOSAL --- */
+        function createExplosionParticles(pos) {
+            for (let i = 0; i < 20; i++) {
+                const geo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+                const mat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+                const p = new THREE.Mesh(geo, mat);
+                p.position.copy(pos);
+                p.position.y += 1.0;
+
+                p.userData = {
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: Math.random() * 0.4,
+                    vz: (Math.random() - 0.5) * 0.4,
+                    life: 30
+                };
+                scene.add(p);
+                particles.push(p);
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.position.x += p.userData.vx;
+                p.position.y += p.userData.vy;
+                p.position.z += p.userData.vz;
+                p.userData.life--;
+
+                if (p.userData.life <= 0) {
+                    disposeObject(p);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function disposeObject(obj) {
+            if (!obj) return;
+            try {
+                if (scene) scene.remove(obj);
+                obj.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m && m.dispose && m.dispose());
+                        } else if (child.material.dispose) {
+                            child.material.dispose();
+                        }
+                    }
+                });
+            } catch (e) {
+                console.warn("dispose error:", e);
+            }
+        }
+
+        /* --- ENVIRONMENT MANAGEMENT & CAMERA --- */
+        function updateWorldChunks() {
+            trackChunks.forEach(chunk => {
+                if (chunk.position.z < playerZ - 30) {
+                    chunk.position.z += trackChunks.length * 20;
+                }
+            });
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                if (obstacles[i].position.z < playerZ - 25) {
+                    disposeObject(obstacles[i]);
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                if (collectibles[i].position.z < playerZ - 25) {
+                    disposeObject(collectibles[i]);
+                    collectibles.splice(i, 1);
+                }
+            }
+
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                if (powerups[i].position.z < playerZ - 25) {
+                    disposeObject(powerups[i]);
+                    powerups.splice(i, 1);
+                }
+            }
+
+            if (camera && playerGroup) {
+                camera.position.z = playerZ - 8.5;
+                camera.position.x += (playerGroup.position.x * 0.4 - camera.position.x) * 0.1;
+                camera.position.y = 6.5 + playerY * 0.6;
+                camera.lookAt(playerGroup.position.x * 0.2, 1.5 + playerY * 0.25, playerZ + 12);
+            }
+        }
+
+        /* --- UI & GAME OVER --- */
+        function updateHUD() {
+            const scoreEl = document.getElementById('score-text');
+            const coinsEl = document.getElementById('coins-text');
+            if (scoreEl) scoreEl.innerText = score;
+            if (coinsEl) coinsEl.innerText = coins;
+
+            const currentMultiplier = (is2xActive ? 2 : 1) * (is5xFeverActive ? 10 : 1);
+            const multText = document.getElementById('multiplier-text');
+            if (multText) multText.innerText = "x" + currentMultiplier;
+
+            const multBadge = document.getElementById('multiplier-badge');
+            if (multBadge) {
+                if (is5xFeverActive) {
+                    multBadge.className = "bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black px-2.5 py-0.5 rounded-full text-xs shadow-lg fever-active flex items-center gap-1";
+                } else if (is2xActive) {
+                    multBadge.className = "bg-amber-500 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-xs shadow-md flex items-center gap-1";
+                } else {
+                    multBadge.className = "bg-slate-800 text-slate-200 font-bold px-2.5 py-0.5 rounded-full text-xs flex items-center gap-1 border border-slate-700";
+                }
+            }
+
+            const bonusFill = document.getElementById('bonus-fill-bar');
+            const bonusLabel = document.getElementById('bonus-label');
+            const bonusPct = document.getElementById('bonus-pct-text');
+            const bonusContainer = document.getElementById('bonus-gauge-container');
+
+            if (bonusFill && bonusLabel && bonusPct && bonusContainer) {
+                if (is5xFeverActive) {
+                    const pct = Math.max(0, Math.min(100, (feverTime / FEVER_DURATION) * 100));
+                    bonusFill.style.width = pct + "%";
+                    bonusFill.className = "bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 h-full rounded-full transition-all duration-75";
+                    bonusLabel.innerHTML = '🔥 10X FEVER MODE!';
+                    bonusLabel.className = 'text-rose-400 font-black animate-pulse flex items-center gap-1';
+                    bonusPct.innerText = Math.ceil((feverTime / FEVER_DURATION) * 10) + "s";
+                    bonusContainer.className = "bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border-2 border-rose-500 shadow-lg shadow-rose-500/20 flex flex-col gap-1 w-40 md:w-48 fever-active";
+                } else {
+                    const pct = Math.max(0, Math.min(100, bonusGauge));
+                    bonusFill.style.width = pct + "%";
+                    bonusFill.className = "bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 h-full rounded-full transition-all duration-150";
+                    bonusLabel.innerHTML = '⚡ BONUS GAUGE';
+                    bonusLabel.className = 'text-purple-300 flex items-center gap-1';
+                    bonusPct.innerText = Math.floor(bonusGauge) + "%";
+                    bonusContainer.className = "bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-purple-500/40 shadow-lg flex flex-col gap-1 w-40 md:w-48";
+                }
+            }
+
+            const powerupHud = document.getElementById('powerup-hud');
+            if (powerupHud) {
+                powerupHud.innerHTML = '';
+                if (isMagnetActive) {
+                    powerupHud.innerHTML += createPowerupBadge('🧲 MAGNET', magnetTime / 500, 'bg-red-500');
+                }
+                if (is2xActive) {
+                    powerupHud.innerHTML += createPowerupBadge('⭐ 2X SCORE', twoXTime / 500, 'bg-amber-500');
+                }
+                if (isHoverboardActive) {
+                    powerupHud.innerHTML += createPowerupBadge('🛡️ SHIELD', hoverboardTime / 600, 'bg-cyan-500');
+                }
+                if (isHurdleBreakerActive) {
+                    powerupHud.innerHTML += createPowerupBadge('💥 CRUSHER', hurdleBreakerTime / 500, 'bg-emerald-500');
+                }
+            }
+        }
+
+        function createPowerupBadge(label, ratio, colorClass) {
+            const pct = Math.max(0, Math.min(100, ratio * 100));
+            return '<div class="bg-slate-900/90 border border-slate-700 p-2 rounded-xl text-xs font-bold shadow-lg">' +
+                '<div class="flex justify-between text-white mb-1"><span>' + label + '</span></div>' +
+                '<div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">' +
+                '<div class="' + colorClass + ' h-full transition-all duration-100" style="width: ' + pct + '%"></div>' +
+                '</div></div>';
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            soundFX.playCrash();
+
+            const goScore = document.getElementById('go-score');
+            const goCoins = document.getElementById('go-coins');
+            if (goScore) goScore.innerText = score;
+            if (goCoins) goCoins.innerText = coins;
+
+            const currentName = getCurrentPlayerName();
+            const rInput = document.getElementById('result-name-input');
+            if (rInput) rInput.value = currentName;
+
+            if (currentName && currentName.trim() !== '' && score > 0) {
+                const res = saveScoreToRanking(currentName, score);
+                lastSavedRecordId = res.recordId;
+                const badge = document.getElementById('new-highscore-badge');
+                if (badge) {
+                    if (res.isNewRecord) badge.classList.remove('hidden');
+                    else badge.classList.add('hidden');
+                }
+            } else {
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('subway_high_score', highScore);
+                    const badge = document.getElementById('new-highscore-badge');
+                    if (badge) badge.classList.remove('hidden');
+                } else {
+                    const badge = document.getElementById('new-highscore-badge');
+                    if (badge) badge.classList.add('hidden');
+                }
+            }
+
+            const menuHs = document.getElementById('menu-highscore');
+            const hudHs = document.getElementById('hud-highscore-text');
+            if (menuHs) menuHs.innerText = highScore;
+            if (hudHs) hudHs.innerText = highScore;
+
+            const goScreen = document.getElementById('gameover-screen');
+            if (goScreen) goScreen.classList.remove('hidden');
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /* --- MAIN ANIMATION LOOP --- */
+        function animate(now) {
+            requestAnimationFrame(animate);
+
+            const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.1); 
+            lastFrameTime = now;
+
+            if (isPlaying) {
+                updatePlayerPhysics(deltaTime);
+                spawnWorldObjects();
+                checkCollisions();
+                updateWorldChunks();
+                updateParticles();
+                updateFlyingObstacles();
+                updateHUD();
+            } else {
+                const startScreen = document.getElementById('start-screen');
+                if (startScreen && !startScreen.classList.contains('hidden')) {
+                    updateTitleAnimation();
+                }
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function startApp() {
+            setupControls();
+            init();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startApp);
+        } else {
+            startApp();
+        }
+    </script>
+</body>
+</html>
